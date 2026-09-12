@@ -41,3 +41,4 @@ export const logger = {
     console.error(`[JanSetu ERROR] ${msg}`, sanitizeLogData(error));
   },
 };
+

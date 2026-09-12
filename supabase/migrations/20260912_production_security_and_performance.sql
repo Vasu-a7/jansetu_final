@@ -78,3 +78,4 @@ WITH CHECK (auth.uid() = id);
 -- 4. GRANT READ ACCESS ON VIEWS TO ANON AND AUTHENTICATED
 GRANT SELECT ON public.vw_district_civic_stats TO anon, authenticated;
 GRANT SELECT ON public.vw_master_issue_summaries TO anon, authenticated;
+

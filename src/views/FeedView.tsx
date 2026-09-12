@@ -70,12 +70,12 @@ function ChallengeCard({
     >
       <div>
         <div className="flex items-start justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap max-w-[calc(100%-80px)]">
             <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
               <Tag className="size-3 shrink-0" />
               <span>{challenge.category}</span>
             </span>
-            <span className="rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 font-mono text-[10px] font-bold">
+            <span className="rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 font-mono text-[10px] font-bold truncate">
               Master: {masterId}
             </span>
           </div>
@@ -95,49 +95,51 @@ function ChallengeCard({
         </p>
       </div>
 
-      <div className="mt-6 pt-4 border-t border-border/60 flex items-center justify-between gap-2">
-        <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground truncate max-w-[180px]">
+      <div className="mt-5 pt-3.5 border-t border-border/60 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+        <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground w-full sm:w-auto max-w-full sm:max-w-[200px]">
           <MapPin className="size-3.5 text-primary shrink-0" />
           <span className="truncate">{challenge.location_text ?? "Location to be confirmed"}</span>
         </p>
 
-        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => speakText(`${challenge.title}. ${challenge.description}`)}
-            title="Read Aloud (Text to Speech)"
-            className="p-1.5 rounded-lg border border-border bg-muted/60 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
-          >
-            <Volume2 className="size-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onCapstone}
-            title="Adopt as Academic Capstone"
-            className="p-1.5 rounded-lg border border-border bg-muted/60 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
-          >
-            <GraduationCap className="size-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onAudit}
-            title="Student Field Audit Verification"
-            className="p-1.5 rounded-lg border border-border bg-muted/60 text-muted-foreground hover:text-emerald-600 hover:border-emerald-500/40 transition-colors"
-          >
-            <ShieldCheck className="size-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onFlag}
-            title="Flag or Report Content"
-            className="p-1.5 rounded-lg border border-border bg-muted/60 text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
-          >
-            <Flag className="size-3.5" />
-          </button>
+        <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto shrink-0" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <button
+              type="button"
+              onClick={() => speakText(`${challenge.title}. ${challenge.description}`)}
+              title="Read Aloud (Text to Speech)"
+              className="p-1.5 rounded-lg border border-border bg-muted/60 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+            >
+              <Volume2 className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onCapstone}
+              title="Adopt as Academic Capstone"
+              className="p-1.5 rounded-lg border border-border bg-muted/60 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+            >
+              <GraduationCap className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onAudit}
+              title="Student Field Audit Verification"
+              className="p-1.5 rounded-lg border border-border bg-muted/60 text-muted-foreground hover:text-emerald-600 hover:border-emerald-500/40 transition-colors"
+            >
+              <ShieldCheck className="size-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={onFlag}
+              title="Flag or Report Content"
+              className="p-1.5 rounded-lg border border-border bg-muted/60 text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+            >
+              <Flag className="size-3.5" />
+            </button>
+          </div>
           <button
             type="button"
             onClick={onUpvote}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all shrink-0 ${
               isUpvoted
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "bg-muted text-muted-foreground hover:bg-primary/15 hover:text-primary"
@@ -415,7 +417,7 @@ export function FeedView() {
   }, [challenges]);
 
   return (
-    <section className="mx-auto w-full max-w-6xl py-4 sm:py-8">
+    <section className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
       <header className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
           Community Feed
@@ -677,7 +679,7 @@ export function FeedView() {
             </div>
 
             <div className="pt-2 border-t border-border space-y-2">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <Button
                   variant="outline"
                   size="sm"

@@ -71,3 +71,4 @@ export function markDraftSynced(id: string): void {
     // Ignore
   }
 }
+

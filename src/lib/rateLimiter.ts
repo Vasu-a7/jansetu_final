@@ -76,3 +76,4 @@ export function checkRateLimit(actionKey: string, customPolicy?: RateLimitPolicy
 export function clearRateLimit(actionKey: string): void {
   TIMESTAMP_LOGS[actionKey] = [];
 }
+

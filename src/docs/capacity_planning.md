@@ -27,3 +27,4 @@
 - **Alert 1: High Latency (>1500ms)** $\rightarrow$ Auto-fallback to short-lived SWR cache.
 - **Alert 2: Database Connection Saturation (>80%)** $\rightarrow$ Scale Supabase Compute Tier (Small to Medium/Large).
 - **Alert 3: Rate Limit Exceeded spikes (>100 HTTP 429s/min)** $\rightarrow$ Trigger Cloudflare Web Application Firewall (WAF) challenge.
+
