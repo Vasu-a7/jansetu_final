@@ -47,6 +47,20 @@ export function AppHeader({ title }: { title?: string }) {
             </span>
           </div>
         </Link>
+
+        {/* Desktop Quick Nav Links */}
+        <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold">
+          <Link to="/schemes" className="text-muted-foreground hover:text-primary transition-colors">
+            Govt Schemes
+          </Link>
+          <Link to="/directory" className="text-muted-foreground hover:text-primary transition-colors">
+            Emergency 24x7
+          </Link>
+          <Link to="/governance" className="text-muted-foreground hover:text-primary transition-colors">
+            About Governance
+          </Link>
+        </nav>
+
         <div className="relative flex items-center gap-1.5 sm:gap-2">
           {searchOpen && (
             <input

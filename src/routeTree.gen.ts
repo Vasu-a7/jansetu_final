@@ -11,8 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as DirectoryRouteImport } from './routes/directory'
+import { Route as GovernanceRouteImport } from './routes/governance'
+import { Route as PrivacyTermsRouteImport } from './routes/privacy-terms'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ReportRouteImport } from './routes/report'
+import { Route as SchemesRouteImport } from './routes/schemes'
 import { Route as WorkspaceRouteImport } from './routes/workspace'
 
 const IndexRoute = IndexRouteImport.update({
@@ -25,6 +29,21 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DirectoryRoute = DirectoryRouteImport.update({
+  id: '/directory',
+  path: '/directory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GovernanceRoute = GovernanceRouteImport.update({
+  id: '/governance',
+  path: '/governance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyTermsRoute = PrivacyTermsRouteImport.update({
+  id: '/privacy-terms',
+  path: '/privacy-terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -33,6 +52,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const ReportRoute = ReportRouteImport.update({
   id: '/report',
   path: '/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SchemesRoute = SchemesRouteImport.update({
+  id: '/schemes',
+  path: '/schemes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkspaceRoute = WorkspaceRouteImport.update({
@@ -44,38 +68,82 @@ const WorkspaceRoute = WorkspaceRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/directory': typeof DirectoryRoute
+  '/governance': typeof GovernanceRoute
+  '/privacy-terms': typeof PrivacyTermsRoute
   '/profile': typeof ProfileRoute
   '/report': typeof ReportRoute
+  '/schemes': typeof SchemesRoute
   '/workspace': typeof WorkspaceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/directory': typeof DirectoryRoute
+  '/governance': typeof GovernanceRoute
+  '/privacy-terms': typeof PrivacyTermsRoute
   '/profile': typeof ProfileRoute
   '/report': typeof ReportRoute
+  '/schemes': typeof SchemesRoute
   '/workspace': typeof WorkspaceRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/directory': typeof DirectoryRoute
+  '/governance': typeof GovernanceRoute
+  '/privacy-terms': typeof PrivacyTermsRoute
   '/profile': typeof ProfileRoute
   '/report': typeof ReportRoute
+  '/schemes': typeof SchemesRoute
   '/workspace': typeof WorkspaceRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/profile' | '/report' | '/workspace'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/directory'
+    | '/governance'
+    | '/privacy-terms'
+    | '/profile'
+    | '/report'
+    | '/schemes'
+    | '/workspace'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/profile' | '/report' | '/workspace'
-  id: '__root__' | '/' | '/auth' | '/profile' | '/report' | '/workspace'
+  to:
+    | '/'
+    | '/auth'
+    | '/directory'
+    | '/governance'
+    | '/privacy-terms'
+    | '/profile'
+    | '/report'
+    | '/schemes'
+    | '/workspace'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/directory'
+    | '/governance'
+    | '/privacy-terms'
+    | '/profile'
+    | '/report'
+    | '/schemes'
+    | '/workspace'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
+  DirectoryRoute: typeof DirectoryRoute
+  GovernanceRoute: typeof GovernanceRoute
+  PrivacyTermsRoute: typeof PrivacyTermsRoute
   ProfileRoute: typeof ProfileRoute
   ReportRoute: typeof ReportRoute
+  SchemesRoute: typeof SchemesRoute
   WorkspaceRoute: typeof WorkspaceRoute
 }
 
@@ -95,6 +163,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/directory': {
+      id: '/directory'
+      path: '/directory'
+      fullPath: '/directory'
+      preLoaderRoute: typeof DirectoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/governance': {
+      id: '/governance'
+      path: '/governance'
+      fullPath: '/governance'
+      preLoaderRoute: typeof GovernanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-terms': {
+      id: '/privacy-terms'
+      path: '/privacy-terms'
+      fullPath: '/privacy-terms'
+      preLoaderRoute: typeof PrivacyTermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -107,6 +196,13 @@ declare module '@tanstack/react-router' {
       path: '/report'
       fullPath: '/report'
       preLoaderRoute: typeof ReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schemes': {
+      id: '/schemes'
+      path: '/schemes'
+      fullPath: '/schemes'
+      preLoaderRoute: typeof SchemesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/workspace': {
@@ -122,8 +218,12 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
+  DirectoryRoute: DirectoryRoute,
+  GovernanceRoute: GovernanceRoute,
+  PrivacyTermsRoute: PrivacyTermsRoute,
   ProfileRoute: ProfileRoute,
   ReportRoute: ReportRoute,
+  SchemesRoute: SchemesRoute,
   WorkspaceRoute: WorkspaceRoute,
 }
 export const routeTree = rootRouteImport

@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import { LoaderCircle, MapPin, Mic, Radio, Sparkles, Upload, UserCheck, Volume2, Wand2 } from "lucide-react";
+import { LoaderCircle, MapPin, Mic, Radio, Sparkles, Upload, UserCheck, Volume2, Wand2, ShieldAlert, Lock, AlertTriangle, Building2 } from "lucide-react";
 import { categorizeChallenge, convertToHinglish, defaultCategories, enhanceDescription, type ChallengeCategory } from "@/lib/geminiAI";
+import { JHARKHAND_DISTRICTS } from "@/lib/jharkhandData";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,10 @@ export function ReportView() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<ChallengeCategory | "">("");
+  const [selectedDistrict, setSelectedDistrict] = useState("Ranchi");
+  const [blockWard, setBlockWard] = useState("");
+  const [urgency, setUrgency] = useState<"low" | "medium" | "high" | "emergency">("medium");
+  const [privacyLevel, setPrivacyLevel] = useState<"public" | "confidential" | "anonymous">("public");
   const [photoName, setPhotoName] = useState("");
   const [locationText, setLocationText] = useState("");
   const [coordinates, setCoordinates] = useState<{
@@ -263,13 +268,21 @@ export function ReportView() {
     }
 
     setIsSubmitting(true);
+    const trackingId = `JS-2025-${selectedDistrict.slice(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
     const newChallenge = {
       id: "report-" + Date.now(),
+      tracking_id: trackingId,
       title: title.trim(),
       description: description.trim(),
       category,
       status: "open" as const,
       location_text: locationText.trim() || "Reported Location",
+      district: selectedDistrict,
+      block_ward: blockWard.trim() || undefined,
+      urgency,
+      privacy_level: privacyLevel,
+      location_text: locationText.trim() || `${selectedDistrict} District`,
       latitude: coordinates?.latitude ?? null,
       longitude: coordinates?.longitude ?? null,
       media_url: photoName || null,
@@ -288,10 +301,15 @@ export function ReportView() {
     // Insert into Supabase using exact database column schema
     try {
       const cleanPayload = {
+        tracking_id: trackingId,
         title: newChallenge.title,
         description: newChallenge.description,
         category: newChallenge.category,
         status: "open",
+        district: selectedDistrict,
+        block_ward: blockWard.trim() || null,
+        urgency,
+        privacy_level: privacyLevel,
         location: newChallenge.location_text || null,
         photo_url: newChallenge.media_url || null,
         user_id: validUserId,
@@ -615,6 +633,83 @@ export function ReportView() {
               ))}
             </div>
           </div>
+        </div>
+
+        {/* JHARKHAND DISTRICT & LOCALITY SELECTION */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <label htmlFor="district-select" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <Building2 className="size-4 text-primary" /> Select Jharkhand District
+            </label>
+            <select
+              id="district-select"
+              value={selectedDistrict}
+              onChange={(e) => setSelectedDistrict(e.target.value)}
+              className="h-10 w-full rounded-xl border border-input bg-card px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-xs"
+            >
+              {JHARKHAND_DISTRICTS.map((d) => (
+                <option key={d.id} value={d.name}>
+                  {d.name} ({d.hindiName})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="block-ward" className="text-sm font-semibold text-foreground">
+              Block / Panchayat / Ward / ULB
+            </label>
+            <Input
+              id="block-ward"
+              value={blockWard}
+              onChange={(e) => setBlockWard(e.target.value)}
+              placeholder="e.g. Kanke Block, Ward 14, Doranda"
+            />
+          </div>
+        </div>
+
+        {/* URGENCY & PRIVACY SETTINGS */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <label htmlFor="urgency-select" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <ShieldAlert className="size-4 text-amber-500" /> Urgency Level
+            </label>
+            <select
+              id="urgency-select"
+              value={urgency}
+              onChange={(e) => setUrgency(e.target.value as any)}
+              className="h-10 w-full rounded-xl border border-input bg-card px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-xs"
+            >
+              <option value="low">Low (Standard maintenance / 14 Days)</option>
+              <option value="medium">Medium (Moderate impact / 7 Days)</option>
+              <option value="high">High (High priority safety / 48 Hrs)</option>
+              <option value="emergency">Emergency (Immediate hazard / 24 Hrs)</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="privacy-select" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <Lock className="size-4 text-indigo-600" /> Privacy Level
+            </label>
+            <select
+              id="privacy-select"
+              value={privacyLevel}
+              onChange={(e) => setPrivacyLevel(e.target.value as any)}
+              className="h-10 w-full rounded-xl border border-input bg-card px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-xs"
+            >
+              <option value="public">Public (Visible on community feed)</option>
+              <option value="confidential">Confidential (Visible only to dept officials)</option>
+              <option value="anonymous">Anonymous (Reporter identity hidden)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* PII SAFETY WARNING NOTICE */}
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+          <AlertTriangle className="size-4 text-amber-600 shrink-0 mt-0.5" />
+          <span>
+            <strong>Privacy & Safety Reminder:</strong> Do not include sensitive personal identity details (Aadhaar numbers, bank OTPs, passwords) in public issue descriptions.
+          </span>
         </div>
 
         {/* Exact Location & GPS Section */}

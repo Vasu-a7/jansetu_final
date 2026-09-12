@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, X, Filter, MapPin, Tag, ThumbsUp, Share2, UserPlus, Navigation, Calendar, Sparkles, GraduationCap, Award, ShieldCheck } from "lucide-react";
+import { Search, X, Filter, MapPin, Tag, ThumbsUp, Share2, UserPlus, Navigation, Calendar, Sparkles, GraduationCap, Award, ShieldCheck, Volume2, Flag, AlertTriangle, CheckCircle2 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { challengeCategories } from "@/lib/geminiAI";
@@ -16,6 +16,7 @@ import { CapstoneProposalModal } from "@/components/CapstoneProposalModal";
 import { FieldVerificationModal } from "@/components/FieldVerificationModal";
 
 type Challenge = Tables<"challenges">;
+type Challenge = Tables<"challenges"> & { tracking_id?: string };
 
 const statusStyles: Record<Challenge["status"], string> = {
   open: "bg-emerald-100 text-emerald-800 border-emerald-200",
@@ -29,6 +30,18 @@ function formatStatus(status: Challenge["status"]) {
   return status.replaceAll("_", " ");
 }
 
+function speakText(text: string) {
+  if (!("speechSynthesis" in window)) {
+    toast.error("Text-to-speech is not supported in this browser.");
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "hi-IN";
+  window.speechSynthesis.speak(utterance);
+  toast.info("Audio reader active 🔊");
+}
+
 function ChallengeCard({
   challenge,
   upvoteCount,
@@ -37,6 +50,7 @@ function ChallengeCard({
   onSelect,
   onCapstone,
   onAudit,
+  onFlag,
 }: {
   challenge: Challenge;
   upvoteCount: number;
@@ -45,7 +59,10 @@ function ChallengeCard({
   onSelect: () => void;
   onCapstone: (e: React.MouseEvent) => void;
   onAudit: (e: React.MouseEvent) => void;
+  onFlag: (e: React.MouseEvent) => void;
 }) {
+  const displayTrackingId = challenge.tracking_id || `JS-2025-RNC-${challenge.id.slice(-4).toUpperCase()}`;
+
   return (
     <article
       onClick={onSelect}
@@ -57,6 +74,16 @@ function ChallengeCard({
             <Tag className="size-3 shrink-0" />
             <span className="truncate">{challenge.category}</span>
           </span>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-semibold text-primary truncate max-w-[160px] sm:max-w-none">
+              <Tag className="size-3 shrink-0" />
+              <span className="truncate">{challenge.category}</span>
+            </span>
+            <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[10px] font-bold text-muted-foreground">
+              {displayTrackingId}
+            </span>
+          </div>
+
           <span
             className={`shrink-0 rounded-full border px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold capitalize ${statusStyles[challenge.status]}`}
           >
@@ -72,13 +99,21 @@ function ChallengeCard({
         </p>
       </div>
 
-      <div className="mt-6 pt-4 border-t border-border/60 flex items-center justify-between gap-3">
-        <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground truncate">
+      <div className="mt-6 pt-4 border-t border-border/60 flex items-center justify-between gap-2">
+        <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground truncate max-w-[180px]">
           <MapPin className="size-3.5 text-primary shrink-0" />
           <span className="truncate">{challenge.location_text ?? "Location to be confirmed"}</span>
         </p>
 
-        <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={() => speakText(`${challenge.title}. ${challenge.description}`)}
+            title="Read Aloud (Text to Speech)"
+            className="p-1.5 rounded-lg border border-border bg-muted/60 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+          >
+            <Volume2 className="size-3.5" />
+          </button>
           <button
             type="button"
             onClick={onCapstone}
@@ -94,6 +129,14 @@ function ChallengeCard({
             className="p-1.5 rounded-lg border border-border bg-muted/60 text-muted-foreground hover:text-emerald-600 hover:border-emerald-500/40 transition-colors"
           >
             <ShieldCheck className="size-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={onFlag}
+            title="Flag or Report Content"
+            className="p-1.5 rounded-lg border border-border bg-muted/60 text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+          >
+            <Flag className="size-3.5" />
           </button>
           <button
             type="button"
@@ -376,12 +419,12 @@ export function FeedView() {
 
   return (
     <section className="mx-auto w-full max-w-6xl py-4 sm:py-8">
-      <header className="mb-6 sm:mb-8 text-left">
+      <header className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-          Community feed
+          Community Feed
         </p>
         <h1 className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-          Current challenges & reported issues
+          Current Challenges & Reported Issues
         </h1>
         <p className="mt-1.5 max-w-2xl text-xs sm:text-sm leading-5 sm:leading-6 text-muted-foreground">
           Centralized civic dashboard. Explore community issues, track AI-verified reports, and collaborate on resolutions.
@@ -430,34 +473,34 @@ export function FeedView() {
         {/* Category Pills */}
         <div className="w-full max-w-full overflow-hidden">
           <div className="flex items-center sm:justify-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar w-full">
-          <button
-            type="button"
-            onClick={() => setSelectedCategory("All")}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-              selectedCategory === "All"
-                ? "bg-primary text-primary-foreground shadow-xs"
-                : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
-          >
-            All Categories ({challenges.length})
-          </button>
-          {availableCategories.map((cat) => {
-            const count = challenges.filter((c) => c.category?.toLowerCase() === cat.toLowerCase()).length;
-            return (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setSelectedCategory(cat)}
-                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
-                  selectedCategory.toLowerCase() === cat.toLowerCase()
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                {cat} ({count})
-              </button>
-            );
-          })}
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("All")}
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                selectedCategory === "All"
+                  ? "bg-primary text-primary-foreground shadow-xs"
+                  : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              All Categories ({challenges.length})
+            </button>
+            {availableCategories.map((cat) => {
+              const count = challenges.filter((c) => c.category?.toLowerCase() === cat.toLowerCase()).length;
+              return (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                    selectedCategory.toLowerCase() === cat.toLowerCase()
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  {cat} ({count})
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -524,6 +567,10 @@ export function FeedView() {
                 e.stopPropagation();
                 setSelectedChallenge(challenge);
                 setIsVerificationModalOpen(true);
+              }}
+              onFlag={(e) => {
+                e.stopPropagation();
+                toast.success(`Report "${challenge.title.slice(0, 30)}..." flagged for human moderation review.`);
               }}
             />
           ))}
