@@ -103,16 +103,16 @@ function ProfilePage() {
 
           if (reportedData && reportedData.length > 0) {
             setUserReports(
-              reportedData.map((rd) => ({
+              reportedData.map((rd: any) => ({
                 id: rd.id || "report-" + Date.now(),
                 title: rd.title,
                 description: rd.description,
                 category: rd.category as any,
                 status: (rd.status as any) || "open",
-                location_text: rd.location_text || null,
+                location_text: rd.location_text || rd.location || null,
                 latitude: rd.latitude || null,
                 longitude: rd.longitude || null,
-                media_url: rd.media_url || null,
+                media_url: rd.media_url || rd.photo_url || null,
                 reporter_id: rd.user_id || rd.reporter_id || user.id,
                 created_at: rd.created_at || new Date().toISOString(),
                 updated_at: rd.updated_at || new Date().toISOString(),

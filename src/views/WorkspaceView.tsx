@@ -121,16 +121,16 @@ export function KanbanView() {
         const { data: reportedData } = await query.order("created_at", { ascending: false });
 
         if (reportedData && reportedData.length > 0) {
-          remoteData = reportedData.map((rd) => ({
+          remoteData = reportedData.map((rd: any) => ({
             id: rd.id || "report-" + Date.now(),
             title: rd.title,
             description: rd.description,
             category: rd.category,
             status: (rd.status as BoardStatus) || "open",
-            location_text: rd.location_text || null,
+            location_text: rd.location_text || rd.location || null,
             latitude: rd.latitude || null,
             longitude: rd.longitude || null,
-            media_url: rd.media_url || null,
+            media_url: rd.media_url || rd.photo_url || null,
             reporter_id: rd.user_id || rd.reporter_id || user?.id || null,
             created_at: rd.created_at || new Date().toISOString(),
             updated_at: rd.updated_at || new Date().toISOString(),

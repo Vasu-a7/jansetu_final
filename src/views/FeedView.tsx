@@ -244,16 +244,16 @@ export function FeedView() {
           .order("created_at", { ascending: false });
 
         if (reportedData && reportedData.length > 0) {
-          remoteData = reportedData.map((rd) => ({
+          remoteData = reportedData.map((rd: any) => ({
             id: rd.id || "report-" + Date.now(),
             title: rd.title,
             description: rd.description,
-            category: rd.category as any,
+            category: (rd.category as any) || "General",
             status: (rd.status as any) || "open",
-            location_text: rd.location_text || null,
+            location_text: rd.location_text || rd.location || null,
             latitude: rd.latitude || null,
             longitude: rd.longitude || null,
-            media_url: rd.media_url || null,
+            media_url: rd.media_url || rd.photo_url || null,
             reporter_id: rd.user_id || rd.reporter_id || null,
             created_at: rd.created_at || new Date().toISOString(),
             updated_at: rd.updated_at || new Date().toISOString(),
@@ -278,7 +278,7 @@ export function FeedView() {
 
       const uniqueMap = new Map<string, Challenge>();
       combined.forEach((item) => {
-        if (!uniqueMap.has(item.id)) {
+        if (item && item.id && !uniqueMap.has(item.id)) {
           uniqueMap.set(item.id, item);
         }
       });
@@ -297,8 +297,21 @@ export function FeedView() {
 
     void loadChallenges();
 
+    const handleUpdate = () => {
+      if (isCurrent) {
+        void loadChallenges();
+      }
+    };
+
+    window.addEventListener("jansetu_report_added", handleUpdate);
+    window.addEventListener("storage", handleUpdate);
+    window.addEventListener("visibilitychange", handleUpdate);
+
     return () => {
       isCurrent = false;
+      window.removeEventListener("jansetu_report_added", handleUpdate);
+      window.removeEventListener("storage", handleUpdate);
+      window.removeEventListener("visibilitychange", handleUpdate);
     };
   }, []);
 
@@ -362,21 +375,21 @@ export function FeedView() {
   }, [challenges]);
 
   return (
-    <section className="mx-auto w-full max-w-5xl px-3.5 sm:px-5 py-6 sm:py-10">
-      <header className="mb-6 sm:mb-8">
+    <section className="mx-auto w-full max-w-6xl py-4 sm:py-8">
+      <header className="mb-6 sm:mb-8 text-left">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
           Community feed
         </p>
         <h1 className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-          Current challenges
+          Current challenges & reported issues
         </h1>
-        <p className="mt-1.5 max-w-xl text-xs sm:text-sm leading-5 sm:leading-6 text-muted-foreground">
-          See what your community is working on and find a way to contribute.
+        <p className="mt-1.5 max-w-2xl text-xs sm:text-sm leading-5 sm:leading-6 text-muted-foreground">
+          Centralized civic dashboard. Explore community issues, track AI-verified reports, and collaborate on resolutions.
         </p>
       </header>
 
       {/* Search Bar & Status Filter */}
-      <div className="mb-6 space-y-4 max-w-full overflow-x-hidden">
+      <div className="mb-6 space-y-4 w-full">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-3 size-4 text-muted-foreground pointer-events-none" />
@@ -385,7 +398,7 @@ export function FeedView() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search challenges by title, keyword, or district..."
-              className="h-10 w-full rounded-xl border border-input bg-card pl-10 pr-9 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-sm"
+              className="h-10 w-full rounded-xl border border-input bg-card pl-10 pr-9 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-xs"
             />
             {searchQuery && (
               <button
@@ -403,7 +416,7 @@ export function FeedView() {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="h-10 rounded-xl border border-input bg-card px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-sm"
+              className="h-10 w-full sm:w-auto rounded-xl border border-input bg-card px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-xs"
             >
               <option value="All">All Statuses</option>
               <option value="open">Open</option>
@@ -415,11 +428,12 @@ export function FeedView() {
         </div>
 
         {/* Category Pills */}
-        <div className="w-full max-w-full overflow-x-auto flex items-center gap-1.5 pb-1.5 no-scrollbar shrink-0">
+        <div className="w-full max-w-full overflow-hidden">
+          <div className="flex items-center sm:justify-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar w-full">
           <button
             type="button"
             onClick={() => setSelectedCategory("All")}
-            className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
               selectedCategory === "All"
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -434,7 +448,7 @@ export function FeedView() {
                 key={cat}
                 type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
                   selectedCategory.toLowerCase() === cat.toLowerCase()
                     ? "bg-primary text-primary-foreground shadow-xs"
                     : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -444,6 +458,7 @@ export function FeedView() {
               </button>
             );
           })}
+          </div>
         </div>
       </div>
 
@@ -491,7 +506,7 @@ export function FeedView() {
       )}
 
       {!isLoading && !errorMessage && filteredChallenges.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 w-full justify-center">
           {filteredChallenges.map((challenge) => (
             <ChallengeCard
               key={challenge.id}

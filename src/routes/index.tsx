@@ -44,7 +44,7 @@ function HomePage() {
   return (
     <>
       <AppHeader />
-      <main id="main" className="mx-auto max-w-6xl px-3.5 sm:px-5 pb-28 pt-4 sm:pt-8 lg:px-8 lg:pt-12 space-y-8 sm:space-y-10">
+      <main id="main" className="mx-auto max-w-6xl px-4 sm:px-6 pb-28 pt-4 sm:pt-8 lg:px-8 lg:pt-12 space-y-8 sm:space-y-10">
         {/* HERO SECTION */}
         <section className="grid gap-6 lg:grid-cols-[1fr_340px] lg:items-center">
           <div>
