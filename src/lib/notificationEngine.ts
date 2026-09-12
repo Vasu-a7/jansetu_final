@@ -86,3 +86,4 @@ export function markNotificationAsRead(id: string): void {
     // Ignore
   }
 }
+

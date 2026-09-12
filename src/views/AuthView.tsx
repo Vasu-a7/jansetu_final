@@ -18,6 +18,8 @@ import {
   Mail,
   User as UserIcon,
 } from "lucide-react";
+import { checkRateLimit } from "@/lib/rateLimiter";
+import { RateLimitModal } from "@/components/RateLimitModal";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -57,9 +59,20 @@ export function AuthView({ initialMode = "signin" }: { initialMode?: "signin" | 
     }
   }, [navigate, user]);
 
+  const [rateLimitOpen, setRateLimitOpen] = useState(false);
+  const [rateLimitSeconds, setRateLimitSeconds] = useState(60);
+
   async function handleSignIn(e: FormEvent) {
     e.preventDefault();
     setSignInError("");
+
+    const rateCheck = checkRateLimit("auth_attempt");
+    if (!rateCheck.allowed) {
+      setRateLimitSeconds(rateCheck.retryAfterSeconds);
+      setRateLimitOpen(true);
+      return;
+    }
+
     if (!email || !password) {
       const message = "Please enter email and password.";
       setSignInError(message);
@@ -618,6 +631,13 @@ export function AuthView({ initialMode = "signin" }: { initialMode?: "signin" | 
           ) : null}
         </div>
       </div>
+
+      <RateLimitModal
+        isOpen={rateLimitOpen}
+        onClose={() => setRateLimitOpen(false)}
+        actionName="Authentication Attempt"
+        initialSeconds={rateLimitSeconds}
+      />
     </div>
   );
 }

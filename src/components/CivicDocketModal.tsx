@@ -98,3 +98,4 @@ export function CivicDocketModal({ masterIssue, isOpen, onClose }: CivicDocketMo
     </Dialog>
   );
 }
+

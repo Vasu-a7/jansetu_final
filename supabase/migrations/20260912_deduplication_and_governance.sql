@@ -168,3 +168,4 @@ CREATE INDEX IF NOT EXISTS idx_master_issues_priority ON public.master_issues(pr
 CREATE INDEX IF NOT EXISTS idx_master_issues_sla_status ON public.master_issues(sla_status);
 CREATE INDEX IF NOT EXISTS idx_complaint_links_master ON public.complaint_links(master_issue_id);
 CREATE INDEX IF NOT EXISTS idx_complaint_status_history_master ON public.complaint_status_history(master_issue_id);
+

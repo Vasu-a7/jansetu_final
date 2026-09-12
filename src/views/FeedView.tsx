@@ -279,8 +279,9 @@ export function FeedView() {
       try {
         const { data: reportedData } = await supabase
           .from("reported_data")
-          .select("*")
-          .order("created_at", { ascending: false });
+          .select("id, tracking_id, master_issue_id, title, description, category, status, district, block_ward, location_text, latitude, longitude, media_url, photo_url, user_id, reporter_id, created_at, updated_at")
+          .order("created_at", { ascending: false })
+          .range(0, 19);
 
         if (reportedData && reportedData.length > 0) {
           remoteData = reportedData.map((rd: any) => ({

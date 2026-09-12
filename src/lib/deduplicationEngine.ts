@@ -255,3 +255,4 @@ export function createMasterIssueFromReport(report: CivicReport, departmentName?
     updated_at: new Date().toISOString(),
   };
 }
+

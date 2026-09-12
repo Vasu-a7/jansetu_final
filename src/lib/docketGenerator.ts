@@ -156,3 +156,4 @@ export function downloadOrPrintCivicDocket(masterIssue: MasterIssue, history: St
     }, 500);
   }
 }
+

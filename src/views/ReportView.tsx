@@ -1,8 +1,13 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import { LoaderCircle, MapPin, Mic, Radio, Sparkles, Upload, UserCheck, Volume2, Wand2, ShieldAlert, Lock, AlertTriangle, Building2, Users, Link as LinkIcon } from "lucide-react";
+import { LoaderCircle, MapPin, Mic, Radio, Sparkles, Upload, UserCheck, Volume2, Wand2, ShieldAlert, Lock, AlertTriangle, Building2, Users, Link as LinkIcon, CheckCircle } from "lucide-react";
 import { categorizeChallenge, convertToHinglish, defaultCategories, enhanceDescription, type ChallengeCategory } from "@/lib/geminiAI";
 import { JHARKHAND_DISTRICTS } from "@/lib/jharkhandData";
 import { evaluateReportSimilarity } from "@/lib/deduplicationEngine";
+import { compressImageFile, validateFileUpload } from "@/lib/imageCompressor";
+import { checkRateLimit } from "@/lib/rateLimiter";
+import { generateIdempotencyKey } from "@/lib/idempotency";
+import { saveOfflineDraft } from "@/lib/offlineQueue";
+import { RateLimitModal } from "@/components/RateLimitModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -194,9 +199,28 @@ export function ReportView() {
     await runAiCategorize();
   }
 
-  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+  const [rateLimitOpen, setRateLimitOpen] = useState(false);
+  const [rateLimitSeconds, setRateLimitSeconds] = useState(60);
+
+  async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    setPhotoName(file?.name ?? "");
+    if (!file) return;
+
+    const val = validateFileUpload(file);
+    if (!val.valid) {
+      toast.error(val.error);
+      event.target.value = "";
+      return;
+    }
+
+    try {
+      toast.info("Compressing image client-side for fast low-bandwidth upload...");
+      const compressed = await compressImageFile(file);
+      setPhotoName(compressed.name);
+      toast.success(`Photo compressed from ${(file.size / 1024).toFixed(0)}KB to ${(compressed.size / 1024).toFixed(0)}KB!`);
+    } catch (_err) {
+      setPhotoName(file.name);
+    }
   }
 
   function handleGetLocation() {
@@ -243,6 +267,13 @@ export function ReportView() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFormMessage(null);
+
+    const rateCheck = checkRateLimit("report_submission");
+    if (!rateCheck.allowed) {
+      setRateLimitSeconds(rateCheck.retryAfterSeconds);
+      setRateLimitOpen(true);
+      return;
+    }
 
     if (!user) {
       setFormMessage({
@@ -795,6 +826,13 @@ export function ReportView() {
           {isSubmitting ? "Submitting report..." : "Submit Report"}
         </Button>
       </form>
+
+      <RateLimitModal
+        isOpen={rateLimitOpen}
+        onClose={() => setRateLimitOpen(false)}
+        actionName="Complaint Submission"
+        initialSeconds={rateLimitSeconds}
+      />
     </section>
   );
 }
