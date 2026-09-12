@@ -15,8 +15,7 @@ import { Button } from "@/components/ui/button";
 import { CapstoneProposalModal } from "@/components/CapstoneProposalModal";
 import { FieldVerificationModal } from "@/components/FieldVerificationModal";
 
-type Challenge = Tables<"challenges">;
-type Challenge = Tables<"challenges"> & { tracking_id?: string };
+type Challenge = Tables<"challenges"> & { tracking_id?: string; master_issue_id?: string };
 
 const statusStyles: Record<Challenge["status"], string> = {
   open: "bg-emerald-100 text-emerald-800 border-emerald-200",
@@ -62,6 +61,7 @@ function ChallengeCard({
   onFlag: (e: React.MouseEvent) => void;
 }) {
   const displayTrackingId = challenge.tracking_id || `JS-2025-RNC-${challenge.id.slice(-4).toUpperCase()}`;
+  const masterId = challenge.master_issue_id || `JST-RD-2026-${challenge.id.slice(-5).toUpperCase()}`;
 
   return (
     <article
@@ -69,23 +69,19 @@ function ChallengeCard({
       className="group relative flex flex-col justify-between rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs transition-all duration-300 hover:border-primary/50 hover:shadow-lg cursor-pointer w-full max-w-full overflow-hidden break-words"
     >
       <div>
-        <div className="flex items-start justify-between gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-semibold text-primary truncate max-w-[160px] sm:max-w-none">
-            <Tag className="size-3 shrink-0" />
-            <span className="truncate">{challenge.category}</span>
-          </span>
+        <div className="flex items-start justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 sm:px-3 sm:py-1 text-[11px] sm:text-xs font-semibold text-primary truncate max-w-[160px] sm:max-w-none">
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
               <Tag className="size-3 shrink-0" />
-              <span className="truncate">{challenge.category}</span>
+              <span>{challenge.category}</span>
             </span>
-            <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[10px] font-bold text-muted-foreground">
-              {displayTrackingId}
+            <span className="rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 font-mono text-[10px] font-bold">
+              Master: {masterId}
             </span>
           </div>
 
           <span
-            className={`shrink-0 rounded-full border px-2.5 py-0.5 sm:px-3 sm:py-1 text-[10px] sm:text-xs font-semibold capitalize ${statusStyles[challenge.status]}`}
+            className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold capitalize ${statusStyles[challenge.status]}`}
           >
             {formatStatus(challenge.status)}
           </span>

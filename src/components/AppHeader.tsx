@@ -56,6 +56,9 @@ export function AppHeader({ title }: { title?: string }) {
           <Link to="/directory" className="text-muted-foreground hover:text-primary transition-colors">
             Emergency 24x7
           </Link>
+          <Link to="/gov-dashboard" className="text-muted-foreground hover:text-primary transition-colors">
+            Gov Dashboard
+          </Link>
           <Link to="/governance" className="text-muted-foreground hover:text-primary transition-colors">
             About Governance
           </Link>

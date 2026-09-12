@@ -1,7 +1,8 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import { LoaderCircle, MapPin, Mic, Radio, Sparkles, Upload, UserCheck, Volume2, Wand2, ShieldAlert, Lock, AlertTriangle, Building2 } from "lucide-react";
+import { LoaderCircle, MapPin, Mic, Radio, Sparkles, Upload, UserCheck, Volume2, Wand2, ShieldAlert, Lock, AlertTriangle, Building2, Users, Link as LinkIcon } from "lucide-react";
 import { categorizeChallenge, convertToHinglish, defaultCategories, enhanceDescription, type ChallengeCategory } from "@/lib/geminiAI";
 import { JHARKHAND_DISTRICTS } from "@/lib/jharkhandData";
+import { evaluateReportSimilarity } from "@/lib/deduplicationEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";

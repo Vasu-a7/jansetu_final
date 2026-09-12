@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as DirectoryRouteImport } from './routes/directory'
+import { Route as GovDashboardRouteImport } from './routes/gov-dashboard'
 import { Route as GovernanceRouteImport } from './routes/governance'
 import { Route as PrivacyTermsRouteImport } from './routes/privacy-terms'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -32,6 +33,11 @@ const AuthRoute = AuthRouteImport.update({
 const DirectoryRoute = DirectoryRouteImport.update({
   id: '/directory',
   path: '/directory',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GovDashboardRoute = GovDashboardRouteImport.update({
+  id: '/gov-dashboard',
+  path: '/gov-dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GovernanceRoute = GovernanceRouteImport.update({
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/directory': typeof DirectoryRoute
+  '/gov-dashboard': typeof GovDashboardRoute
   '/governance': typeof GovernanceRoute
   '/privacy-terms': typeof PrivacyTermsRoute
   '/profile': typeof ProfileRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/directory': typeof DirectoryRoute
+  '/gov-dashboard': typeof GovDashboardRoute
   '/governance': typeof GovernanceRoute
   '/privacy-terms': typeof PrivacyTermsRoute
   '/profile': typeof ProfileRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/directory': typeof DirectoryRoute
+  '/gov-dashboard': typeof GovDashboardRoute
   '/governance': typeof GovernanceRoute
   '/privacy-terms': typeof PrivacyTermsRoute
   '/profile': typeof ProfileRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/directory'
+    | '/gov-dashboard'
     | '/governance'
     | '/privacy-terms'
     | '/profile'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/directory'
+    | '/gov-dashboard'
     | '/governance'
     | '/privacy-terms'
     | '/profile'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/directory'
+    | '/gov-dashboard'
     | '/governance'
     | '/privacy-terms'
     | '/profile'
@@ -139,6 +151,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   DirectoryRoute: typeof DirectoryRoute
+  GovDashboardRoute: typeof GovDashboardRoute
   GovernanceRoute: typeof GovernanceRoute
   PrivacyTermsRoute: typeof PrivacyTermsRoute
   ProfileRoute: typeof ProfileRoute
@@ -168,6 +181,13 @@ declare module '@tanstack/react-router' {
       path: '/directory'
       fullPath: '/directory'
       preLoaderRoute: typeof DirectoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/gov-dashboard': {
+      id: '/gov-dashboard'
+      path: '/gov-dashboard'
+      fullPath: '/gov-dashboard'
+      preLoaderRoute: typeof GovDashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/governance': {
@@ -219,6 +239,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   DirectoryRoute: DirectoryRoute,
+  GovDashboardRoute: GovDashboardRoute,
   GovernanceRoute: GovernanceRoute,
   PrivacyTermsRoute: PrivacyTermsRoute,
   ProfileRoute: ProfileRoute,
