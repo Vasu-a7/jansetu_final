@@ -44,7 +44,7 @@ function HomePage() {
   return (
     <>
       <AppHeader />
-      <main id="main" className="mx-auto max-w-6xl px-4 sm:px-6 pb-28 pt-4 sm:pt-8 lg:px-8 lg:pt-12 space-y-8 sm:space-y-10">
+      <main id="main" className="mx-auto max-w-6xl px-3 sm:px-6 pb-28 pt-4 sm:pt-8 lg:px-8 lg:pt-12 space-y-6 sm:space-y-10">
         {/* HERO SECTION */}
         <section className="grid gap-6 lg:grid-cols-[1fr_340px] lg:items-center">
           <div>
@@ -155,7 +155,7 @@ function HomePage() {
         </section>
 
         {/* CIVIC IMPACT METRICS DASHBOARD */}
-        <section className="rounded-3xl border border-border bg-card p-6 shadow-xs">
+        <section className="rounded-2xl sm:rounded-3xl border border-border bg-card p-4 sm:p-6 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-4 border-b border-border">
             <div>
               <h2 className="text-lg font-bold text-foreground flex items-center gap-2">

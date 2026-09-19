@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { CapstoneProposalModal } from "@/components/CapstoneProposalModal";
 import { FieldVerificationModal } from "@/components/FieldVerificationModal";
 
-type Challenge = Tables<"challenges"> & { tracking_id?: string; master_issue_id?: string };
+type Challenge = Tables<"challenges"> & { tracking_id?: string };
 
 const statusStyles: Record<Challenge["status"], string> = {
   open: "bg-emerald-100 text-emerald-800 border-emerald-200",
@@ -61,22 +61,21 @@ function ChallengeCard({
   onFlag: (e: React.MouseEvent) => void;
 }) {
   const displayTrackingId = challenge.tracking_id || `JS-2025-RNC-${challenge.id.slice(-4).toUpperCase()}`;
-  const masterId = challenge.master_issue_id || `JST-RD-2026-${challenge.id.slice(-5).toUpperCase()}`;
 
   return (
     <article
       onClick={onSelect}
-      className="group relative flex flex-col justify-between rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs transition-all duration-300 hover:border-primary/50 hover:shadow-lg cursor-pointer w-full max-w-full overflow-hidden break-words"
+      className="group relative flex min-w-0 w-full max-w-full flex-col justify-between overflow-hidden break-words rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs transition-all duration-300 hover:border-primary/50 hover:shadow-lg cursor-pointer"
     >
       <div>
-        <div className="flex items-start justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 flex-wrap max-w-[calc(100%-80px)]">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap max-w-[calc(100%-85px)]">
             <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
               <Tag className="size-3 shrink-0" />
-              <span>{challenge.category}</span>
+              <span className="truncate max-w-[120px] sm:max-w-none">{challenge.category}</span>
             </span>
-            <span className="rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 font-mono text-[10px] font-bold truncate">
-              Master: {masterId}
+            <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[10px] font-bold text-muted-foreground truncate max-w-[120px] sm:max-w-none">
+              {displayTrackingId}
             </span>
           </div>
 
@@ -281,9 +280,8 @@ export function FeedView() {
       try {
         const { data: reportedData } = await supabase
           .from("reported_data")
-          .select("id, tracking_id, master_issue_id, title, description, category, status, district, block_ward, location_text, latitude, longitude, media_url, photo_url, user_id, reporter_id, created_at, updated_at")
-          .order("created_at", { ascending: false })
-          .range(0, 19);
+          .select("*")
+          .order("created_at", { ascending: false });
 
         if (reportedData && reportedData.length > 0) {
           remoteData = reportedData.map((rd: any) => ({
@@ -417,13 +415,13 @@ export function FeedView() {
   }, [challenges]);
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-      <header className="mb-6">
+    <section className="mx-auto w-full max-w-6xl px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+      <header className="mb-6 sm:mb-8 text-left">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-          Community Feed
+          Community feed
         </p>
         <h1 className="mt-1 sm:mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-          Current Challenges & Reported Issues
+          Current challenges & reported issues
         </h1>
         <p className="mt-1.5 max-w-2xl text-xs sm:text-sm leading-5 sm:leading-6 text-muted-foreground">
           Centralized civic dashboard. Explore community issues, track AI-verified reports, and collaborate on resolutions.
@@ -433,14 +431,14 @@ export function FeedView() {
       {/* Search Bar & Status Filter */}
       <div className="mb-6 space-y-4 w-full">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
+          <div className="relative flex-1 w-full">
             <Search className="absolute left-3.5 top-3 size-4 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search challenges by title, keyword, or district..."
-              className="h-10 w-full rounded-xl border border-input bg-card pl-10 pr-9 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-xs"
+              className="h-10 w-full rounded-xl border border-input bg-card pl-10 pr-9 text-xs sm:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-xs"
             />
             {searchQuery && (
               <button
@@ -453,12 +451,12 @@ export function FeedView() {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <Filter className="size-4 text-muted-foreground" />
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Filter className="size-4 text-muted-foreground shrink-0" />
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="h-10 w-full sm:w-auto rounded-xl border border-input bg-card px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-xs"
+              className="h-10 flex-1 sm:w-auto rounded-xl border border-input bg-card px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-xs"
             >
               <option value="All">All Statuses</option>
               <option value="open">Open</option>
@@ -471,11 +469,11 @@ export function FeedView() {
 
         {/* Category Pills */}
         <div className="w-full max-w-full overflow-hidden">
-          <div className="flex items-center sm:justify-center gap-1.5 overflow-x-auto pb-1.5 no-scrollbar w-full">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 pt-0.5 no-scrollbar w-full touch-pan-x px-0.5">
             <button
               type="button"
               onClick={() => setSelectedCategory("All")}
-              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                 selectedCategory === "All"
                   ? "bg-primary text-primary-foreground shadow-xs"
                   : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -490,7 +488,7 @@ export function FeedView() {
                   key={cat}
                   type="button"
                   onClick={() => setSelectedCategory(cat)}
-                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                     selectedCategory.toLowerCase() === cat.toLowerCase()
                       ? "bg-primary text-primary-foreground shadow-xs"
                       : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -679,7 +677,7 @@ export function FeedView() {
             </div>
 
             <div className="pt-2 border-t border-border space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="outline"
                   size="sm"
