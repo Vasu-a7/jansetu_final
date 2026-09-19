@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Home, LayoutDashboard, PlusCircle, User, BookOpen, Phone } from "lucide-react";
 
 const linkClass =
-  "flex h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0.5 text-[10px] sm:text-xs font-semibold transition-colors shrink-0 overflow-hidden text-center";
+  "flex h-12 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-0 text-[9px] sm:text-xs font-semibold transition-colors shrink-0 overflow-hidden text-center";
 
 const inactiveClass = `${linkClass} text-muted-foreground hover:bg-muted hover:text-foreground`;
 const activeClass = `${linkClass} bg-primary/10 text-primary font-bold`;
@@ -23,18 +23,18 @@ export function BottomNav() {
           inactiveProps={{ className: inactiveClass }}
         >
           <Home className="size-4 sm:size-5 shrink-0" strokeWidth={1.75} aria-hidden />
-          <span className="truncate w-full text-center">Feed</span>
+          <span className="whitespace-nowrap text-center">Feed</span>
         </Link>
 
         <Link
           to="/schemes"
           aria-label="Govt Schemes"
-          className={linkClass}
+          className={`${linkClass} tour-schemes`}
           activeProps={{ className: activeClass }}
           inactiveProps={{ className: inactiveClass }}
         >
           <BookOpen className="size-4 sm:size-5 shrink-0 text-indigo-600 dark:text-indigo-400" strokeWidth={1.75} aria-hidden />
-          <span className="truncate w-full text-center">Schemes</span>
+          <span className="whitespace-nowrap text-center">Schemes</span>
         </Link>
         
         <Link
@@ -45,18 +45,18 @@ export function BottomNav() {
           inactiveProps={{ className: inactiveClass }}
         >
           <PlusCircle className="size-4 sm:size-5 shrink-0 text-primary" strokeWidth={1.75} aria-hidden />
-          <span className="truncate w-full text-center font-bold">Report</span>
+          <span className="whitespace-nowrap text-center font-bold">Report</span>
         </Link>
 
         <Link
           to="/directory"
           aria-label="24x7 Emergency"
-          className={linkClass}
+          className={`${linkClass} tour-directory`}
           activeProps={{ className: activeClass }}
           inactiveProps={{ className: inactiveClass }}
         >
           <Phone className="size-4 sm:size-5 shrink-0 text-destructive" strokeWidth={1.75} aria-hidden />
-          <span className="truncate w-full text-center">Helplines</span>
+          <span className="whitespace-nowrap text-center">Helplines</span>
         </Link>
         
         <Link
@@ -67,18 +67,18 @@ export function BottomNav() {
           inactiveProps={{ className: inactiveClass }}
         >
           <LayoutDashboard className="size-4 sm:size-5 shrink-0" strokeWidth={1.75} aria-hidden />
-          <span className="truncate w-full text-center">Workspace</span>
+          <span className="whitespace-nowrap text-center">Workspace</span>
         </Link>
         
         <Link
           to="/profile"
           aria-label="Profile"
-          className={linkClass}
+          className={`${linkClass} tour-profile`}
           activeProps={{ className: activeClass }}
           inactiveProps={{ className: inactiveClass }}
         >
           <User className="size-4 sm:size-5 shrink-0" strokeWidth={1.75} aria-hidden />
-          <span className="truncate w-full text-center">Profile</span>
+          <span className="whitespace-nowrap text-center">Profile</span>
         </Link>
       </div>
     </nav>

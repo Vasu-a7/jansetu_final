@@ -105,7 +105,7 @@ function ChallengeCard({
           <span className="truncate">{challenge.location_text ?? "Location to be confirmed"}</span>
         </p>
 
-        <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto shrink-0" onClick={(e) => e.stopPropagation()}>
+          <div className="tour-card-actions flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto shrink-0" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center gap-1 sm:gap-1.5">
             <button
               type="button"
@@ -144,7 +144,7 @@ function ChallengeCard({
           <button
             type="button"
             onClick={onUpvote}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all shrink-0 ${
+            className={`tour-upvote inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all shrink-0 ${
               isUpvoted
                 ? "bg-primary text-primary-foreground shadow-xs"
                 : "bg-muted text-muted-foreground hover:bg-primary/15 hover:text-primary"
@@ -421,7 +421,7 @@ export function FeedView() {
   }, [challenges]);
 
   return (
-    <section className="mx-auto w-full max-w-6xl px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <section className="mx-auto min-w-0 w-full max-w-6xl px-3 pb-8 sm:px-6 sm:py-8 lg:px-8">
       <header className="mb-6 sm:mb-8 text-left">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
           Community feed
@@ -444,7 +444,7 @@ export function FeedView() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search challenges by title, keyword, or district..."
-              className="h-10 w-full rounded-xl border border-input bg-card pl-10 pr-9 text-xs sm:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-xs"
+              className="tour-feed-search h-10 w-full rounded-xl border border-input bg-card pl-10 pr-9 text-xs sm:text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-xs"
             />
             {searchQuery && (
               <button
@@ -462,7 +462,7 @@ export function FeedView() {
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="h-10 flex-1 sm:w-auto rounded-xl border border-input bg-card px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-xs"
+              className="tour-feed-status h-10 flex-1 sm:w-auto rounded-xl border border-input bg-card px-3 text-xs font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shadow-xs"
             >
               <option value="All">All Statuses</option>
               <option value="open">Open</option>
@@ -474,7 +474,7 @@ export function FeedView() {
         </div>
 
         {/* Category Pills */}
-        <div className="w-full max-w-full overflow-hidden">
+        <div className="tour-feed-categories w-full max-w-full overflow-hidden">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 pt-0.5 no-scrollbar w-full touch-pan-x px-0.5">
             <button
               type="button"

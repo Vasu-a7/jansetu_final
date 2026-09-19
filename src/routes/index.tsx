@@ -44,7 +44,7 @@ function HomePage() {
   return (
     <>
       <AppHeader />
-      <main id="main" className="mx-auto max-w-6xl px-3 sm:px-6 pb-28 pt-4 sm:pt-8 lg:px-8 lg:pt-12 space-y-6 sm:space-y-10">
+      <main id="main" className="mx-auto min-w-0 w-full max-w-6xl px-3 pb-32 sm:px-6 sm:pb-12 pt-4 sm:pt-8 lg:px-8 lg:pt-12 space-y-6 sm:space-y-10">
         {/* HERO SECTION */}
         <section className="grid gap-6 lg:grid-cols-[1fr_340px] lg:items-center">
           <div>
@@ -95,7 +95,7 @@ function HomePage() {
         <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Link
             to="/report"
-            className="group flex flex-col justify-between rounded-2xl border border-primary/20 bg-primary/5 p-4 transition-all duration-200 hover:bg-primary/10 hover:border-primary/40 hover:shadow-md"
+            className="tour-quick-report group flex flex-col justify-between rounded-2xl border border-primary/20 bg-primary/5 p-4 transition-all duration-200 hover:bg-primary/10 hover:border-primary/40 hover:shadow-md"
           >
             <div className="size-10 rounded-xl bg-primary text-primary-foreground grid place-items-center shadow-xs group-hover:scale-105 transition-transform">
               <PlusCircle className="size-5" />
@@ -110,7 +110,7 @@ function HomePage() {
 
           <Link
             to="/workspace"
-            className="group flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition-all duration-200 hover:border-indigo-500/40 hover:shadow-md"
+            className="tour-quick-workspace group flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition-all duration-200 hover:border-indigo-500/40 hover:shadow-md"
           >
             <div className="size-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 grid place-items-center shadow-xs group-hover:scale-105 transition-transform">
               <GraduationCap className="size-5" />
@@ -125,7 +125,7 @@ function HomePage() {
 
           <Link
             to="/workspace"
-            className="group flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition-all duration-200 hover:border-emerald-500/40 hover:shadow-md"
+            className="tour-quick-govt group flex flex-col justify-between rounded-2xl border border-border bg-card p-4 transition-all duration-200 hover:border-emerald-500/40 hover:shadow-md"
           >
             <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 grid place-items-center shadow-xs group-hover:scale-105 transition-transform">
               <Landmark className="size-5" />

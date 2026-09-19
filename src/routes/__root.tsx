@@ -164,7 +164,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <div className="relative flex min-h-screen flex-col overflow-x-clip pb-20 sm:pb-0">
+        <div className="relative flex min-h-screen min-w-0 flex-col overflow-x-clip pb-20 sm:pb-0">
           <OnboardingTour />
           <Outlet />
           <BottomNav />

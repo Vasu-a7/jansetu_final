@@ -78,7 +78,7 @@ export function AppHeader({ title }: { title?: string }) {
             type="button"
             aria-label="Search challenges"
             onClick={() => setSearchOpen((open) => !open)}
-            className="grid size-9 sm:size-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+            className="tour-header-search grid size-9 sm:size-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
           >
             <Search className="size-4 sm:size-[18px]" strokeWidth={1.8} aria-hidden />
           </button>
@@ -88,7 +88,7 @@ export function AppHeader({ title }: { title?: string }) {
               type="button"
               aria-label="View notifications"
               onClick={() => setNotifOpen((prev) => !prev)}
-              className="relative grid size-9 sm:size-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+              className="tour-notifications relative grid size-9 sm:size-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
             >
               <Bell className="size-4 sm:size-[18px]" strokeWidth={1.8} aria-hidden />
               <span className="absolute right-2 top-2 size-2 rounded-full bg-amber-500 ring-2 ring-background" />
@@ -130,7 +130,7 @@ export function AppHeader({ title }: { title?: string }) {
             <Link
               to="/profile"
               aria-label="Open your profile"
-              className="flex items-center gap-2 rounded-full border border-border bg-muted p-1 pr-3 hover:bg-muted/80 transition-colors"
+              className="tour-header-profile flex items-center gap-2 rounded-full border border-border bg-muted p-1 pr-3 hover:bg-muted/80 transition-colors"
             >
               <div className="size-8 overflow-hidden rounded-full border border-border bg-primary text-primary-foreground font-semibold flex items-center justify-center text-xs">
                 {initial || <img src={avatar} alt="" width={512} height={512} className="size-full object-cover" />}
@@ -140,7 +140,7 @@ export function AppHeader({ title }: { title?: string }) {
           ) : (
             <Link
               to="/auth"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+              className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl bg-primary px-2.5 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
             >
               <LogIn className="size-3.5" />
               <span>Sign In</span>
