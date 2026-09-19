@@ -65,19 +65,15 @@ function ChallengeCard({
   return (
     <article
       onClick={onSelect}
-      className="group relative flex min-w-0 w-full max-w-full flex-col justify-between overflow-hidden break-words rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-xs transition-all duration-300 hover:border-primary/50 hover:shadow-lg cursor-pointer"
+      className="group relative flex min-w-0 w-full max-w-full flex-col justify-between overflow-hidden break-words rounded-2xl border border-border bg-card p-3.5 sm:p-5 shadow-xs transition-all duration-300 hover:border-primary/50 hover:shadow-lg cursor-pointer"
     >
       <div>
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 flex-wrap max-w-[calc(100%-85px)]">
-            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
-              <Tag className="size-3 shrink-0" />
-              <span className="truncate max-w-[120px] sm:max-w-none">{challenge.category}</span>
-            </span>
-            <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[10px] font-bold text-muted-foreground truncate max-w-[120px] sm:max-w-none">
-              {displayTrackingId}
-            </span>
-          </div>
+        {/* Header Badges */}
+        <div className="flex items-center justify-between gap-2 w-full">
+          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11px] font-semibold text-primary truncate max-w-[65%]">
+            <Tag className="size-3 shrink-0" />
+            <span className="truncate">{challenge.category}</span>
+          </span>
 
           <span
             className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold capitalize ${statusStyles[challenge.status]}`}
@@ -86,7 +82,15 @@ function ChallengeCard({
           </span>
         </div>
 
-        <h2 className="mt-3 sm:mt-4 text-base sm:text-lg font-bold tracking-tight text-card-foreground group-hover:text-primary transition-colors line-clamp-2 break-words">
+        {/* Tracking ID & Meta */}
+        <div className="mt-2 flex items-center gap-2">
+          <span className="rounded-full bg-muted/80 px-2 py-0.5 font-mono text-[10px] font-bold text-muted-foreground truncate max-w-[160px]">
+            {displayTrackingId}
+          </span>
+        </div>
+
+        {/* Title & Description */}
+        <h2 className="mt-2.5 sm:mt-3.5 text-base sm:text-lg font-bold tracking-tight text-card-foreground group-hover:text-primary transition-colors line-clamp-2 break-words">
           {challenge.title}
         </h2>
         <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm leading-5 sm:leading-6 text-muted-foreground line-clamp-3 break-words">
@@ -94,7 +98,8 @@ function ChallengeCard({
         </p>
       </div>
 
-      <div className="mt-5 pt-3.5 border-t border-border/60 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+      {/* Footer Meta & Action Bar */}
+      <div className="mt-4 pt-3 border-t border-border/60 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
         <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground w-full sm:w-auto max-w-full sm:max-w-[200px]">
           <MapPin className="size-3.5 text-primary shrink-0" />
           <span className="truncate">{challenge.location_text ?? "Location to be confirmed"}</span>
@@ -135,6 +140,7 @@ function ChallengeCard({
               <Flag className="size-3.5" />
             </button>
           </div>
+
           <button
             type="button"
             onClick={onUpvote}
