@@ -9,8 +9,7 @@ const STATUS = (JoyrideModule as any).STATUS || {};
 const OnboardingTour = () => {
   const [run, setRun] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { user, isLoading } = useAuth();
-  const tourKey = `jansetu-tour-completed:${user?.id || user?.email || 'guest'}`;
+  const { isLoading } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -18,36 +17,95 @@ const OnboardingTour = () => {
 
   useEffect(() => {
     if (!mounted || isLoading) return;
-    setRun(localStorage.getItem(tourKey) !== 'true');
-  }, [isLoading, mounted, tourKey]);
+    setRun(true);
+  }, [isLoading, mounted]);
 
   const steps: any[] = [
     {
       target: '.tour-feed',
       content: 'Feed button: yahan latest civic issues, updates aur community activity dekhein.',
+      disableBeacon: true,
     },
     {
       target: '.tour-report',
       content: 'Report button: AI assistant ki madad se naya civic issue submit karein.',
+      disableBeacon: true,
     },
     {
       target: '.tour-workspace',
       content: 'Workspace button: tasks, capstone projects aur resolution work manage karein.',
+      disableBeacon: true,
     },
-    { target: '.tour-schemes', content: 'Schemes button: government schemes aur eligibility information dekhein.' },
-    { target: '.tour-directory', content: 'Helplines button: emergency aur public service contacts yahan milenge.' },
-    { target: '.tour-header-profile', content: 'Profile shortcut: apna account aur activity manage karein.' },
-    { target: '.tour-profile', content: 'Bottom Profile button: account settings aur personal activity kholein.' },
-    { target: '.tour-header-search', content: 'Search icon: civic information ko jaldi dhoondhein.' },
-    { target: '.tour-notifications', content: 'Bell icon: issue updates aur notifications check karein.' },
-    { target: '.tour-quick-report', content: 'Report Issue card: detailed report flow ka shortcut.' },
-    { target: '.tour-quick-workspace', content: 'University Hub: capstone aur academic projects browse karein.' },
-    { target: '.tour-quick-govt', content: 'Govt Desk: official status aur resolution progress dekhein.' },
-    { target: '.tour-feed-search', content: 'Search field: title, keyword ya district se feed filter karein.' },
-    { target: '.tour-feed-status', content: 'Status filter se Open, Active, Under Review ya Resolved issues choose karein.' },
-    { target: '.tour-feed-categories', content: 'Category chips se issue type ke hisaab se feed filter karein.' },
-    { target: '.tour-card-actions', content: 'Card actions: issue sunna, capstone, field audit ya flag karna.' },
-    { target: '.tour-upvote', content: 'Thumbs-up button se issue ko endorse karke priority badhayein.' },
+    {
+      target: '.tour-schemes',
+      content: 'Schemes button: government schemes aur eligibility information dekhein.',
+      disableBeacon: true,
+    },
+    {
+      target: '.tour-directory',
+      content: 'Helplines button: emergency aur public service contacts yahan milenge.',
+      disableBeacon: true,
+    },
+    {
+      target: '.tour-header-profile',
+      content: 'Profile shortcut: apna account aur activity manage karein.',
+      disableBeacon: true,
+    },
+    {
+      target: '.tour-profile',
+      content: 'Bottom Profile button: account settings aur personal activity kholein.',
+      disableBeacon: true,
+    },
+    {
+      target: '.tour-header-search',
+      content: 'Search icon: civic information ko jaldi dhoondhein.',
+      disableBeacon: true,
+    },
+    {
+      target: '.tour-notifications',
+      content: 'Bell icon: issue updates aur notifications check karein.',
+      disableBeacon: true,
+    },
+    {
+      target: '.tour-quick-report',
+      content: 'Report Issue card: detailed report flow ka shortcut.',
+      disableBeacon: true,
+    },
+    {
+      target: '.tour-quick-workspace',
+      content: 'University Hub: capstone aur academic projects browse karein.',
+      disableBeacon: true,
+    },
+    {
+      target: '.tour-quick-govt',
+      content: 'Govt Desk: official status aur resolution progress dekhein.',
+      disableBeacon: true,
+    },
+    {
+      target: '.tour-feed-search',
+      content: 'Search field: title, keyword ya district se feed filter karein.',
+      disableBeacon: true,
+    },
+    {
+      target: '.tour-feed-status',
+      content: 'Status filter se Open, Active, Under Review ya Resolved issues choose karein.',
+      disableBeacon: true,
+    },
+    {
+      target: '.tour-feed-categories',
+      content: 'Category chips se issue type ke hisaab se feed filter karein.',
+      disableBeacon: true,
+    },
+    {
+      target: '.tour-card-actions',
+      content: 'Card actions: issue sunna, capstone, field audit ya flag karna.',
+      disableBeacon: true,
+    },
+    {
+      target: '.tour-upvote',
+      content: 'Thumbs-up button se issue ko endorse karke priority badhayein.',
+      disableBeacon: true,
+    },
   ];
 
   const handleJoyrideCallback = (data: any) => {
@@ -55,7 +113,6 @@ const OnboardingTour = () => {
     const finishedStatuses: string[] = [STATUS.FINISHED, 'finished'];
 
     if (finishedStatuses.includes(status)) {
-      localStorage.setItem(tourKey, 'true');
       setRun(false);
     }
   };
@@ -72,6 +129,8 @@ const OnboardingTour = () => {
       hideCloseButton={true}
       disableOverlayClose={true}
       disableCloseOnEsc={true}
+      disableBeacon={true}
+      spotlightClicks={false}
       callback={handleJoyrideCallback}
       locale={{ back: 'Back', close: 'Complete tour', last: 'Finish', next: 'Next', skip: 'Skip' }}
       styles={{
