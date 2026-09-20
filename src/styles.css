@@ -151,6 +151,24 @@
     color: var(--color-foreground);
   }
 
+  #root {
+    width: 100%;
+    min-width: 0;
+    max-width: 100vw;
+  }
+
+  main {
+    width: 100%;
+    min-width: 0;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
+  }
+
   /* Hide default browser password reveal eye icons (Edge / Chrome / Safari) */
   input[type="password"]::-ms-reveal,
   input[type="password"]::-ms-clear,
