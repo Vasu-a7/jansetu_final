@@ -75,6 +75,84 @@ function ProfilePage() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [userReports, setUserReports] = useState<Challenge[]>([]);
   const [activeModal, setActiveModal] = useState<SettingKey>(null);
+  const [activeTab, setActiveTab] = useState<"issues" | "badges" | "settings">("issues");
+
+  // Dynamic Synced Streak & XP State
+  const [streakCount, setStreakCount] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem("jansetu_streak_count");
+      return stored ? parseInt(stored, 10) : 12;
+    } catch {
+      return 12;
+    }
+  });
+
+  const [xpPoints, setXpPoints] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem("jansetu_xp_points");
+      return stored ? parseInt(stored, 10) : 850;
+    } catch {
+      return 850;
+    }
+  });
+
+  const [claimedToday, setClaimedToday] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("jansetu_claimed_today") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  // Sync Streak across components & windows
+  useEffect(() => {
+    function syncStreakState() {
+      try {
+        const storedStreak = localStorage.getItem("jansetu_streak_count");
+        if (storedStreak) setStreakCount(parseInt(storedStreak, 10));
+
+        const storedXp = localStorage.getItem("jansetu_xp_points");
+        if (storedXp) setXpPoints(parseInt(storedXp, 10));
+
+        const storedClaimed = localStorage.getItem("jansetu_claimed_today");
+        if (storedClaimed === "true") setClaimedToday(true);
+      } catch (e) {
+        console.error("Streak sync error", e);
+      }
+    }
+
+    syncStreakState();
+    window.addEventListener("jansetu_streak_updated", syncStreakState);
+    window.addEventListener("storage", syncStreakState);
+
+    return () => {
+      window.removeEventListener("jansetu_streak_updated", syncStreakState);
+      window.removeEventListener("storage", syncStreakState);
+    };
+  }, []);
+
+  function handleProfileClaimXp() {
+    if (claimedToday) {
+      toast.info("🔥 Today's Civic XP already claimed! Come back tomorrow.");
+      return;
+    }
+    const newStreak = streakCount + 1;
+    const newXp = xpPoints + 50;
+    setStreakCount(newStreak);
+    setXpPoints(newXp);
+    setClaimedToday(true);
+
+    try {
+      localStorage.setItem("jansetu_streak_count", String(newStreak));
+      localStorage.setItem("jansetu_xp_points", String(newXp));
+      localStorage.setItem("jansetu_claimed_today", "true");
+      window.dispatchEvent(new Event("jansetu_streak_updated"));
+    } catch (e) {
+      console.error(e);
+    }
+
+    toast.success("🔥 Day " + newStreak + " Streak Active! +50 Civic XP added!");
+  }
 
   // Settings State
   const [pushNotifs, setPushNotifs] = useState(true);
@@ -177,11 +255,11 @@ function ProfilePage() {
   return (
     <>
       <AppHeader title="Profile" />
-      <main id="main" className="mx-auto max-w-md px-6 pb-32 pt-8">
+      <main id="main" className="mx-auto max-w-lg px-4 sm:px-6 pb-32 pt-6 sm:pt-8 space-y-6">
         
         {/* LOGGED OUT STATE BANNER */}
         {!user && !isLoading && (
-          <div className="mb-6 rounded-2xl border border-primary/20 bg-primary/5 p-5 text-center">
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-5 text-center shadow-xs">
             <UserCheck className="mx-auto size-10 text-primary mb-2" />
             <h2 className="text-lg font-bold text-foreground">Sign In to Save Your Reports</h2>
             <p className="mt-1 text-xs text-muted-foreground">
@@ -204,7 +282,7 @@ function ProfilePage() {
 
         {/* LOGGED IN USER PROFILE HEADER */}
         <div className="flex flex-col items-center text-center">
-          <div className="relative mb-4">
+          <div className="relative mb-3">
             {user ? (
               <div className="size-24 rounded-full bg-primary text-primary-foreground text-2xl font-bold flex items-center justify-center border-4 border-background shadow-md">
                 {initials}
@@ -215,7 +293,7 @@ function ProfilePage() {
                 alt="JanSetu Civic Contributor"
                 width={512}
                 height={512}
-                className="size-24 rounded-full object-cover outline-2 outline-primary/20"
+                className="size-24 rounded-full object-cover outline-2 outline-primary/20 shadow-md"
               />
             )}
             <span className="absolute bottom-0 right-0 rounded-full bg-primary p-1 text-primary-foreground shadow-sm">
@@ -223,9 +301,9 @@ function ProfilePage() {
             </span>
           </div>
 
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{displayName}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{displayName}</h1>
           
-          <div className="mt-1 flex items-center gap-2">
+          <div className="mt-1 flex items-center justify-center gap-2 flex-wrap">
             <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-primary">
               {userRoleDisplay}
             </span>
@@ -236,111 +314,255 @@ function ProfilePage() {
             )}
           </div>
 
-          <p className="mt-2 max-w-xs text-xs text-muted-foreground">
+          <p className="mt-1.5 max-w-xs text-xs text-muted-foreground">
             {user ? user.email : "Active community member working towards local infrastructure and public welfare."}
           </p>
 
-          <div className="mt-6 flex w-full max-w-xs justify-around rounded-xl border border-border bg-card p-4 shadow-sm">
-            <div className="text-center">
-              <span className="block text-xl font-semibold text-foreground">12</span>
-              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Streak Days
+          {/* DYNAMIC 4-METRIC STATS GRID */}
+          <div className="mt-5 grid grid-cols-4 gap-2 w-full rounded-2xl border border-border bg-card p-3 shadow-xs text-center">
+            <div className="p-1">
+              <span className="block text-lg font-black text-amber-500 drop-shadow-xs">{streakCount} 🔥</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Streak
               </span>
             </div>
-            <div className="h-8 w-px bg-border my-auto" />
-            <div className="text-center">
-              <span className="block text-xl font-semibold text-primary">{userReports.length}</span>
-              <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Reports Filed
+            <div className="p-1 border-l border-border">
+              <span className="block text-lg font-black text-primary">{userReports.length}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Reports
+              </span>
+            </div>
+            <div className="p-1 border-l border-border">
+              <span className="block text-lg font-black text-indigo-600 dark:text-indigo-400">{xpPoints}</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                XP
+              </span>
+            </div>
+            <div className="p-1 border-l border-border">
+              <span className="block text-lg font-black text-emerald-600">3 🏆</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Badges
               </span>
             </div>
           </div>
         </div>
 
-        {/* RECENT SUBMITTED REPORTS LIST */}
-        {userReports.length > 0 && (
-          <div className="mt-8 border-t border-border pt-6">
-            <h2 className="text-sm font-bold tracking-tight text-foreground mb-3 flex items-center gap-1.5">
-              <FileText className="size-4 text-primary" /> My Submitted Issues ({userReports.length})
-            </h2>
-            <div className="space-y-3">
-              {userReports.slice(0, 5).map((r) => (
-                <div key={r.id} className="rounded-xl border border-border bg-card p-3 shadow-2xs">
-                  <div className="flex items-center justify-between text-xs mb-1">
+        {/* GAMIFIED XP LEVEL & DAILY CHECK-IN CARD */}
+        <div className="rounded-2xl bg-gradient-to-r from-indigo-900 via-indigo-850 to-slate-900 p-4 text-white border border-indigo-500/30 shadow-md">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="size-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 text-slate-950 grid place-items-center shadow-xs font-bold shrink-0">
+                <Flame className="size-6 fill-current" />
+              </div>
+              <div>
+                <p className="text-sm font-extrabold text-white flex items-center gap-1.5">
+                  Level 3 Civic Builder
+                </p>
+                <p className="text-[11px] text-indigo-200">{xpPoints} / 1000 XP to Level 4 Champion</p>
+              </div>
+            </div>
+
+            <Button
+              size="sm"
+              onClick={handleProfileClaimXp}
+              className={`text-xs font-extrabold shadow-sm shrink-0 rounded-xl ${
+                claimedToday
+                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
+                  : "bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 hover:brightness-110"
+              }`}
+            >
+              {claimedToday ? "Claimed ✓" : "+50 XP Claim"}
+            </Button>
+          </div>
+
+          <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/15 p-0.5">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-amber-400 via-orange-400 to-emerald-400 transition-all duration-500"
+              style={{ width: `${Math.min(100, (xpPoints / 1000) * 100)}%` }}
+            />
+          </div>
+        </div>
+
+        {/* INTERACTIVE NAVIGATION TABS */}
+        <div className="border-b border-border">
+          <div className="flex items-center justify-around text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setActiveTab("issues")}
+              className={`py-2.5 border-b-2 transition-colors cursor-pointer ${
+                activeTab === "issues"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              My Issues ({userReports.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("badges")}
+              className={`py-2.5 border-b-2 transition-colors cursor-pointer ${
+                activeTab === "badges"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Badges (3)
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("settings")}
+              className={`py-2.5 border-b-2 transition-colors cursor-pointer ${
+                activeTab === "settings"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Preferences
+            </button>
+          </div>
+        </div>
+
+        {/* TAB 1: MY SUBMITTED ISSUES */}
+        {activeTab === "issues" && (
+          <div className="space-y-3">
+            {userReports.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center">
+                <FileText className="mx-auto size-8 text-muted-foreground mb-2" />
+                <h3 className="text-sm font-semibold text-foreground">No reports filed yet</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Use the JanSetu AI assistant to file your first civic issue.
+                </p>
+                <Link to="/report" className="mt-4 inline-block">
+                  <Button size="sm" className="gap-1.5 text-xs font-bold">
+                    File New Report ✨
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              userReports.map((r) => (
+                <div key={r.id} className="rounded-2xl border border-border bg-card p-4 shadow-2xs hover:border-primary/40 transition-colors">
+                  <div className="flex items-center justify-between text-xs mb-1.5">
                     <span className="font-semibold text-primary inline-flex items-center gap-1">
                       <Tag className="size-3" /> {r.category}
                     </span>
-                    <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 font-bold capitalize">
+                    <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] px-2.5 py-0.5 font-bold capitalize">
                       {r.status.replaceAll("_", " ")}
                     </span>
                   </div>
-                  <h3 className="text-xs font-bold text-foreground">{r.title}</h3>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-1">{r.description}</p>
+                  <h3 className="text-sm font-bold text-foreground">{r.title}</h3>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{r.description}</p>
                   {r.location_text && (
-                    <span className="text-[10px] text-muted-foreground/80 mt-1 flex items-center gap-1">
-                      <MapPin className="size-3 text-primary" /> {r.location_text}
+                    <span className="text-[11px] text-muted-foreground/90 mt-2 flex items-center gap-1 font-medium">
+                      <MapPin className="size-3.5 text-primary shrink-0" /> {r.location_text}
                     </span>
                   )}
                 </div>
-              ))}
+              ))
+            )}
+          </div>
+        )}
+
+        {/* TAB 2: BADGES & MILESTONES */}
+        {activeTab === "badges" && (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-border bg-card p-3.5 shadow-xs flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-amber-500/10 text-amber-600 grid place-items-center shrink-0">
+                <Award className="size-6" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-foreground">Neighborhood Guard</h4>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Reported 5+ local issues</p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-3.5 shadow-xs flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 grid place-items-center shrink-0">
+                <Zap className="size-6" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-foreground">Fast AI Reporter</h4>
+                <p className="text-[10px] text-muted-foreground mt-0.5">AI verified submission</p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-3.5 shadow-xs flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-emerald-500/10 text-emerald-600 grid place-items-center shrink-0">
+                <ShieldCheck className="size-6" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-foreground">Field Auditor</h4>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Verified resolution site</p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-3.5 shadow-xs flex items-center gap-3 opacity-60">
+              <div className="size-10 rounded-xl bg-muted text-muted-foreground grid place-items-center shrink-0">
+                <Crown className="size-6" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-muted-foreground">Civic Champion</h4>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Unlock at 1000 XP</p>
+              </div>
             </div>
           </div>
         )}
 
-        {/* SETTINGS MENU */}
-        <ul className="mt-8 space-y-1 border-t border-border pt-4">
-          {settingsList.map(({ label, icon: Icon }) => (
-            <li key={label}>
-              <button
-                type="button"
-                onClick={() => setActiveModal(label)}
-                className="flex min-h-12 w-full items-center justify-between border-b border-border py-4 text-left hover:bg-muted/40 px-2 rounded-lg transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className="size-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">{label}</span>
-                </div>
-                <ChevronRight
-                  className="size-4 text-muted-foreground"
-                  strokeWidth={1.75}
-                  aria-hidden
-                />
-              </button>
-            </li>
-          ))}
+        {/* TAB 3: SETTINGS MENU */}
+        {activeTab === "settings" && (
+          <ul className="space-y-1">
+            {settingsList.map(({ label, icon: Icon }) => (
+              <li key={label}>
+                <button
+                  type="button"
+                  onClick={() => setActiveModal(label)}
+                  className="flex min-h-12 w-full items-center justify-between border-b border-border py-3.5 text-left hover:bg-muted/40 px-3 rounded-xl transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className="size-4 text-primary" />
+                    <span className="text-sm font-medium text-foreground">{label}</span>
+                  </div>
+                  <ChevronRight
+                    className="size-4 text-muted-foreground"
+                    strokeWidth={1.75}
+                    aria-hidden
+                  />
+                </button>
+              </li>
+            ))}
 
-          {user ? (
-            <li>
-              <button
-                type="button"
-                onClick={() => void handleSignOut()}
-                disabled={isSigningOut}
-                className="flex min-h-12 w-full items-center justify-between border-b border-border py-4 text-left text-destructive hover:bg-destructive/10 px-2 rounded-lg transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <LogOut className="size-4" />
-                  <span className="text-sm font-semibold">
-                    {isSigningOut ? "Signing Out..." : "Sign Out"}
-                  </span>
-                </div>
-                <ChevronRight className="size-4" strokeWidth={1.75} />
-              </button>
-            </li>
-          ) : (
-            <li>
-              <Link
-                to="/auth"
-                className="flex min-h-12 w-full items-center justify-between border-b border-border py-4 text-left text-primary hover:bg-primary/10 px-2 rounded-lg transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <LogIn className="size-4" />
-                  <span className="text-sm font-semibold">Sign In / Register</span>
-                </div>
-                <ChevronRight className="size-4" strokeWidth={1.75} />
-              </Link>
-            </li>
-          )}
-        </ul>
+            {user ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => void handleSignOut()}
+                  disabled={isSigningOut}
+                  className="flex min-h-12 w-full items-center justify-between border-b border-border py-3.5 text-left text-destructive hover:bg-destructive/10 px-3 rounded-xl transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <LogOut className="size-4" />
+                    <span className="text-sm font-semibold">
+                      {isSigningOut ? "Signing Out..." : "Sign Out"}
+                    </span>
+                  </div>
+                  <ChevronRight className="size-4" strokeWidth={1.75} />
+                </button>
+              </li>
+            ) : (
+              <li>
+                <Link
+                  to="/auth"
+                  className="flex min-h-12 w-full items-center justify-between border-b border-border py-3.5 text-left text-primary hover:bg-primary/10 px-3 rounded-xl transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <LogIn className="size-4" />
+                    <span className="text-sm font-semibold">Sign In / Register</span>
+                  </div>
+                  <ChevronRight className="size-4" strokeWidth={1.75} />
+                </Link>
+              </li>
+            )}
+          </ul>
+        )}
       </main>
 
       {/* Interactive Settings Dialog */}
