@@ -15,6 +15,10 @@ import {
   Building2,
   Tag,
   MapPin,
+  Flame,
+  Award,
+  Zap,
+  Crown,
 } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import avatar from "@/assets/avatar.jpg";
