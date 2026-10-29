@@ -159,14 +159,18 @@ export async function categorizeChallenge(description: string): Promise<Challeng
   }
 
   const apiKey = import.meta.env["VITE_GEMINI_API_KEY"];
-  if (!apiKey || apiKey.startsWith("AQ.Ab8RN")) {
+  if (!apiKey) {
     return categorizeLocally(description);
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
       {
+        signal: controller.signal,
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -201,6 +205,7 @@ Return ONLY a valid JSON object with "category" and "priority" ("High", "Medium"
         }),
       }
     );
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       return categorizeLocally(description);
@@ -269,14 +274,18 @@ export async function convertToHinglish(speechText: string): Promise<string> {
   if (!speechText.trim()) return "";
 
   const apiKey = import.meta.env["VITE_GEMINI_API_KEY"];
-  if (!apiKey || apiKey.startsWith("AQ.Ab8RN")) {
+  if (!apiKey) {
     return localHinglishConverter(speechText);
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
       {
+        signal: controller.signal,
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -299,6 +308,7 @@ Return ONLY the converted Hinglish text without any markdown, quotes, or explana
         }),
       }
     );
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       return localHinglishConverter(speechText);
@@ -319,41 +329,49 @@ function localEnhancer(rawText: string): string {
   let clean = rawText.trim();
   if (!clean) return "";
 
-  // Strip any pre-existing section headers & repetitive boilerplate to prevent nesting
+  // Strip any pre-existing legacy headers if present
   clean = clean
-    .replace(/^📌\s*Issue Summary:\s*/gim, "")
-    .replace(/^⚠️\s*Ground Impact & Urgency:\s*/gim, "")
-    .replace(/^🛠️\s*Recommended Action:\s*/gim, "")
-    .replace(/^Issue Summary:\s*/gim, "")
-    .replace(/^Ground Impact & Safety Risk:\s*/gim, "")
-    .replace(/^Ground Impact:\s*/gim, "")
-    .replace(/^Action Requested:\s*/gim, "")
-    .replace(/This civic issue directly affects local residents.*?(?=\n\n|\n|$)/gim, "")
-    .replace(/Immediate site inspection.*?(?=\n\n|\n|$)/gim, "")
-    .replace(/Urgent attention is recommended.*?(?=\n\n|\n|$)/gim, "")
-    .replace(/Prompt site assessment is advised.*?(?=\n\n|\n|$)/gim, "")
-    .replace(/Inspection, site clearance.*?(?=\n\n|\n|$)/gim, "")
-    .replace(/\n\s*\n/g, "\n")
+    .replace(/^(📌|⚠️|🛠️|📢)?\s*(Issue Summary|Ground Impact & Urgency|Ground Impact|Safety Risk|Recommended Action|Action Requested):\s*/gim, "")
+    .replace(/\n\s*\n/g, "\n\n")
     .trim();
 
-  // Extract core statement (first line)
-  const coreStatement = clean.split("\n")[0]?.trim() || clean;
+  const lower = clean.toLowerCase();
+  let impactDetail = "This condition poses significant daily disruption and safety hazards to local residents, neighborhood pedestrians, and daily commuters traversing this area.";
+  let municipalAction = "An urgent on-site technical inspection by the concerned civic authorities is required to execute prompt remediation and restore normal public infrastructure standards.";
 
-  return `📌 Issue Summary:\n${coreStatement}\n\n⚠️ Ground Impact & Urgency:\nThis civic issue impacts local residents, daily commuters, and neighborhood safety. Prompt site assessment is advised.\n\n🛠️ Recommended Action:\nInspection, site clearance, and structural repair by municipal authorities or university research project leads.`;
+  if (lower.includes("road") || lower.includes("sadak") || lower.includes("pothole") || lower.includes("gaddha") || lower.includes("crater")) {
+    impactDetail = "The damaged road surface presents an acute hazard to passing vehicles and two-wheeler riders, who are forced into sudden evasive maneuvers, creating severe collision risks and persistent traffic bottlenecks.";
+    municipalAction = "The municipal road engineering and PWD division must conduct an immediate site survey, deploy emergency asphalt patching, and schedule comprehensive surface leveling to eliminate accident threats.";
+  } else if (lower.includes("light") || lower.includes("bijli") || lower.includes("andhera") || lower.includes("wire") || lower.includes("electric") || lower.includes("lamp")) {
+    impactDetail = "The absence of reliable street illumination creates dark, hazardous corridors during evening hours, severely compromising pedestrian security and drastically elevating the likelihood of nighttime vehicular accidents.";
+    municipalAction = "The municipal electrical engineering department should urgently inspect the lighting circuit, replace defective fixtures and burnt-out LEDs, and ensure uninterrupted street illumination.";
+  } else if (lower.includes("water") || lower.includes("pani") || lower.includes("pipe") || lower.includes("leak") || lower.includes("drain") || lower.includes("naali") || lower.includes("sewer")) {
+    impactDetail = "Persistent water leakage and drainage blockages are causing localized waterlogging, erosion of the surrounding foundation, clean water loss, and breeding grounds for vector-borne diseases.";
+    municipalAction = "The Water and Sewerage Board maintenance team must be dispatched immediately to isolate the fractured line, desilt the drainage system, and implement permanent structural pipe repairs.";
+  } else if (lower.includes("garbage") || lower.includes("kachra") || lower.includes("waste") || lower.includes("dump") || lower.includes("trash")) {
+    impactDetail = "Accumulated uncollected waste is spreading foul odors, obstructing pedestrian pathways, and creating an acute public health concern for nearby homes and commercial establishments.";
+    municipalAction = "Sanitation inspection squads must immediately coordinate mechanized waste clearance, sanitize the perimeter, and schedule regular periodic collection to prevent re-accumulation.";
+  }
+
+  return `${clean}. ${impactDetail}\n\n${municipalAction}`;
 }
 
 export async function enhanceDescription(rawDescription: string): Promise<string> {
   if (!rawDescription.trim()) return "";
 
   const apiKey = import.meta.env["VITE_GEMINI_API_KEY"];
-  if (!apiKey || apiKey.startsWith("AQ.Ab8RN")) {
+  if (!apiKey) {
     return localEnhancer(rawDescription);
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
       {
+        signal: controller.signal,
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -363,7 +381,7 @@ export async function enhanceDescription(rawDescription: string): Promise<string
             {
               parts: [
                 {
-                  text: `Enhance and expand this user's rough civic issue description into a structured, professional, clear report:\n\n${rawDescription}`,
+                  text: `Transform this citizen's grievance into an articulate, detailed, and comprehensive civic issue description:\n\n"${rawDescription}"`,
                 },
               ],
             },
@@ -371,21 +389,25 @@ export async function enhanceDescription(rawDescription: string): Promise<string
           systemInstruction: {
             parts: [
               {
-                text: `You are an AI Civic Report Enhancer for JanSetu.
-Take the user's input (which may be a short note or speech in English, Hindi, or Hinglish) and rewrite it into a clean 3-part report:
-📌 Issue Summary: (what the problem is)
-⚠️ Ground Impact & Urgency: (who it affects and severity)
-🛠️ Recommended Action: (what local authorities should inspect and resolve)
+                text: `You are an expert civic communication AI for JanSetu (India's Citizen-Administration Commons).
+Your goal is to transform brief, rough, or spoken user inputs (in English, Hindi, or Hinglish) into an articulate, highly detailed, fluent, and professional civic report description.
 
-Return ONLY the enhanced description text without markdown block quotes or explanations.`,
+STRICT INSTRUCTIONS:
+- DO NOT use rigid robotic template headers like "📌 Issue Summary:", "⚠️ Ground Impact & Urgency:", "🛠️ Recommended Action:", or canned bullet points.
+- Write a natural, authoritative, and vivid 2-paragraph narrative report:
+  * Paragraph 1: Clearly articulate the physical problem and ground reality, keeping all specific local landmarks, street names, ward numbers, and locations intact. Detail the immediate impact on commuters, local residents, pedestrians, and public transit.
+  * Paragraph 2: Highlight the technical urgency, escalating safety or health risks if left unaddressed, and outline the concrete administrative and engineering actions needed from the municipal department.
+- Return ONLY the final enhanced description text without conversational prefixes, quotation marks, or markdown headers.`,
               },
             ],
           },
         }),
       }
     );
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
+      console.warn("Gemini API response not ok, falling back to local enhancer:", response.status);
       return localEnhancer(rawDescription);
     }
 
@@ -396,6 +418,7 @@ Return ONLY the enhanced description text without markdown block quotes or expla
       ? resultText.trim().replace(/^["']|["']$/g, "")
       : localEnhancer(rawDescription);
   } catch (error) {
+    console.warn("Gemini API call failed, using local enhancer:", error);
     return localEnhancer(rawDescription);
   }
 }

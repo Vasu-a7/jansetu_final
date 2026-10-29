@@ -50,7 +50,9 @@ export function ReportView() {
 
   async function runAiEnhanceDescription() {
     if (!description.trim()) {
-      toast.error("Please type a short description or voice note first before enhancing.");
+      toast.info("Please enter a few words or use Voice Typing first (or click a Quick Voice Preset below) to enhance with AI! ✨");
+      const textarea = document.getElementById("issue-description") as HTMLTextAreaElement | null;
+      textarea?.focus();
       return;
     }
 
@@ -63,7 +65,9 @@ export function ReportView() {
 
       setIsCategorizing(true);
       const catResult = await categorizeChallenge(enhanced);
-      setCategory(catResult.category);
+      if (catResult?.category) {
+        setCategory(catResult.category);
+      }
     } catch (err) {
       console.error("Enhance error", err);
       toast.error("Could not enhance description.");
@@ -75,10 +79,9 @@ export function ReportView() {
 
   async function runAiCategorize() {
     if (!description.trim()) {
-      setFormMessage({
-        type: "error",
-        text: "Please enter a detailed description first so AI can categorize it.",
-      });
+      toast.info("Please enter a description first so AI can suggest the category! 🏷️");
+      const textarea = document.getElementById("issue-description") as HTMLTextAreaElement | null;
+      textarea?.focus();
       return;
     }
 
@@ -87,6 +90,7 @@ export function ReportView() {
     try {
       const result = await categorizeChallenge(description);
       setCategory(result.category);
+      toast.success(`Category detected: ${result.category}`);
     } catch (error) {
       setFormMessage({
         type: "error",
@@ -465,15 +469,15 @@ export function ReportView() {
                 variant="outline"
                 size="sm"
                 onClick={runAiEnhanceDescription}
-                disabled={isEnhancing || !description.trim()}
-                className="gap-1.5 font-semibold text-xs border-primary/30 text-primary hover:bg-primary/5 shadow-xs"
+                disabled={isEnhancing}
+                className="gap-1.5 font-semibold text-xs border-primary/30 text-primary hover:bg-primary/5 shadow-xs cursor-pointer"
               >
                 {isEnhancing ? (
                   <LoaderCircle className="size-3.5 animate-spin text-primary" />
                 ) : (
                   <Sparkles className="size-3.5 text-primary" />
                 )}
-                {isEnhancing ? "Enhancing..." : "Enhance Description with AI ✨"}
+                {isEnhancing ? "Enhancing with AI..." : "Enhance Description with AI ✨"}
               </Button>
 
               <div className="inline-flex rounded-lg border border-border p-0.5 text-xs bg-muted/50">
@@ -616,8 +620,8 @@ export function ReportView() {
             <button
               type="button"
               onClick={() => void runAiCategorize()}
-              disabled={isCategorizing || !description.trim()}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline disabled:opacity-50"
+              disabled={isCategorizing}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline disabled:opacity-50 cursor-pointer"
             >
               <Sparkles className="size-3.5" />
               {isCategorizing ? "AI Categorizing..." : "Auto-Categorize with AI"}
