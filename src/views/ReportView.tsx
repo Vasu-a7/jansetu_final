@@ -402,15 +402,15 @@ export function ReportView() {
     if (supabaseSaved) {
       setFormMessage({
         type: "success",
-        text: "Your issue has been reported and securely saved to the Supabase backend!",
+        text: `Your issue has been reported and securely synced to the cloud database! (Tracking ID: ${trackingId})`,
       });
-      toast.success("Report saved to Supabase backend!");
+      toast.success(`Report submitted! Tracking ID: ${trackingId}`);
     } else {
       setFormMessage({
         type: "success",
-        text: `Your issue has been saved! (Backend note: ${errorDetail || "Saved locally"}).`,
+        text: `Your issue has been reported and saved locally on your device! (Tracking ID: ${trackingId})`,
       });
-      toast.info("Report saved locally!");
+      toast.success(`Report saved locally! Tracking ID: ${trackingId}`);
     }
   }
 
