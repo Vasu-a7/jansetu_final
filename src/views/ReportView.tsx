@@ -313,7 +313,6 @@ export function ReportView() {
       description: description.trim(),
       category,
       status: "open" as const,
-      location_text: locationText.trim() || "Reported Location",
       district: selectedDistrict,
       block_ward: blockWard.trim() || undefined,
       urgency,
