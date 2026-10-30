@@ -19,6 +19,8 @@ import {
   Award,
   Zap,
   Crown,
+  Scale,
+  AlertCircle,
 } from "lucide-react";
 import { AppHeader } from "@/components/AppHeader";
 import avatar from "@/assets/avatar.jpg";
@@ -27,6 +29,8 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import type { Tables } from "@/integrations/supabase/types";
+import { getUserReputation, type UserReputation } from "@/lib/reputationEngine";
+import { ReportAppealModal } from "@/components/ReportAppealModal";
 import {
   Dialog,
   DialogContent,
@@ -77,9 +81,19 @@ type Challenge = Tables<"challenges">;
 function ProfilePage() {
   const { user, profile, role, signOut, isLoading } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [userReports, setUserReports] = useState<Challenge[]>([]);
+  const [userReports, setUserReports] = useState<any[]>([]);
   const [activeModal, setActiveModal] = useState<SettingKey>(null);
   const [activeTab, setActiveTab] = useState<"issues" | "badges" | "settings">("issues");
+  const [appealModalReport, setAppealModalReport] = useState<any | null>(null);
+  const [reputation, setReputation] = useState<UserReputation | null>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      setReputation(getUserReputation(user.id));
+    } else {
+      setReputation(getUserReputation("anonymous"));
+    }
+  }, [user]);
 
   // Dynamic Synced Streak & XP State
   const [streakCount, setStreakCount] = useState<number>(() => {
@@ -187,10 +201,13 @@ function ProfilePage() {
             setUserReports(
               reportedData.map((rd: any) => ({
                 id: rd.id || "report-" + Date.now(),
+                tracking_id: rd.tracking_id || rd.id,
                 title: rd.title,
                 description: rd.description,
                 category: rd.category as any,
                 status: (rd.status as any) || "open",
+                rejection_reason: rd.rejection_reason || null,
+                moderation_status: rd.moderation_status || null,
                 location_text: rd.location_text || rd.location || null,
                 latitude: rd.latitude || null,
                 longitude: rd.longitude || null,
@@ -387,6 +404,42 @@ function ProfilePage() {
           </div>
         </div>
 
+        {/* CIVIC TRUST & ANTI-FAKE REPUTATION CARD */}
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className={`size-10 rounded-xl grid place-items-center font-bold shrink-0 ${
+                reputation?.tier === 'civic_leader' ? 'bg-amber-500/15 text-amber-600' :
+                reputation?.tier === 'trusted' ? 'bg-emerald-500/15 text-emerald-600' :
+                reputation?.tier === 'probation' ? 'bg-destructive/15 text-destructive' :
+                'bg-primary/10 text-primary'
+              }`}>
+                <ShieldCheck className="size-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-foreground">Reporter Trust Score</span>
+                  <span className={`rounded-full text-[10px] font-extrabold px-2 py-0.5 uppercase tracking-wide ${
+                    reputation?.tier === 'civic_leader' ? 'bg-amber-500/15 text-amber-700' :
+                    reputation?.tier === 'trusted' ? 'bg-emerald-500/15 text-emerald-700' :
+                    reputation?.tier === 'probation' ? 'bg-destructive/15 text-destructive' :
+                    'bg-primary/10 text-primary'
+                  }`}>
+                    {reputation?.tier.replace('_', ' ') || 'New Reporter'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {reputation?.verified_reports_count || 0} verified reports • Multi-signal anti-abuse shield active
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-xl font-black text-foreground">{reputation?.score ?? 60}</span>
+              <span className="text-[10px] text-muted-foreground font-semibold">/100</span>
+            </div>
+          </div>
+        </div>
+
         {/* INTERACTIVE NAVIGATION TABS */}
         <div className="border-b border-border">
           <div className="flex items-center justify-around text-xs font-bold">
@@ -446,10 +499,19 @@ function ProfilePage() {
               userReports.map((r) => (
                 <div key={r.id} className="rounded-2xl border border-border bg-card p-4 shadow-2xs hover:border-primary/40 transition-colors">
                   <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="font-semibold text-primary inline-flex items-center gap-1">
-                      <Tag className="size-3" /> {r.category}
-                    </span>
-                    <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] px-2.5 py-0.5 font-bold capitalize">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-semibold text-primary inline-flex items-center gap-1">
+                        <Tag className="size-3" /> {r.category}
+                      </span>
+                      {r.tracking_id && (
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-mono font-medium text-muted-foreground">
+                          {r.tracking_id}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`rounded-full text-[10px] px-2.5 py-0.5 font-bold capitalize ${
+                      r.status === "rejected" ? "bg-destructive/15 text-destructive" : "bg-emerald-100 text-emerald-800"
+                    }`}>
                       {r.status.replaceAll("_", " ")}
                     </span>
                   </div>
@@ -459,6 +521,30 @@ function ProfilePage() {
                     <span className="text-[11px] text-muted-foreground/90 mt-2 flex items-center gap-1 font-medium">
                       <MapPin className="size-3.5 text-primary shrink-0" /> {r.location_text}
                     </span>
+                  )}
+
+                  {/* REJECTION REASON & APPEAL ACTION */}
+                  {r.status === "rejected" && (
+                    <div className="mt-3 rounded-xl border border-destructive/20 bg-destructive/5 p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="text-xs text-destructive">
+                          <p className="font-bold flex items-center gap-1">
+                            <AlertCircle className="size-3.5" /> Rejection Notice
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-foreground/80">
+                            {r.rejection_reason || "Flagged during community moderation review."}
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setAppealModalReport(r)}
+                          className="shrink-0 text-xs h-7 gap-1 font-bold border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300"
+                        >
+                          <Scale className="size-3" /> Appeal
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </div>
               ))
@@ -732,6 +818,17 @@ function ProfilePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Citizen Rejection Appeal Modal */}
+      <ReportAppealModal
+        isOpen={!!appealModalReport}
+        onClose={() => setAppealModalReport(null)}
+        report={appealModalReport}
+        onSuccess={() => {
+          toast.success("Appeal filed. Our community board will review within 24-48 hours.");
+          setAppealModalReport(null);
+        }}
+      />
     </>
   );
 }

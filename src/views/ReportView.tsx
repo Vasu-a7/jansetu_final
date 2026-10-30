@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import { LoaderCircle, MapPin, Mic, Radio, Sparkles, Upload, UserCheck, Volume2, Wand2, ShieldAlert, Lock, AlertTriangle, Building2, Users, Link as LinkIcon, CheckCircle } from "lucide-react";
+import { LoaderCircle, MapPin, Mic, Radio, Sparkles, Upload, UserCheck, Volume2, Wand2, ShieldAlert, ShieldCheck, Lock, AlertTriangle, Building2, Users, Link as LinkIcon, CheckCircle } from "lucide-react";
 import { categorizeChallenge, convertToHinglish, defaultCategories, enhanceDescription, type ChallengeCategory } from "@/lib/geminiAI";
 import { JHARKHAND_DISTRICTS } from "@/lib/jharkhandData";
 import { evaluateReportSimilarity } from "@/lib/deduplicationEngine";
@@ -8,6 +8,8 @@ import { checkRateLimit } from "@/lib/rateLimiter";
 import { generateIdempotencyKey } from "@/lib/idempotency";
 import { saveOfflineDraft } from "@/lib/offlineQueue";
 import { RateLimitModal } from "@/components/RateLimitModal";
+import { generateUniqueTrackingId } from "@/lib/trackingId";
+import { getUserReputation, updateUserReputation } from "@/lib/reputationEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -47,6 +49,12 @@ export function ReportView() {
     type: "error" | "success";
     text: string;
   } | null>(null);
+  const [captchaProblem] = useState(() => {
+    const a = Math.floor(Math.random() * 8) + 2;
+    const b = Math.floor(Math.random() * 8) + 1;
+    return { q: `${a} + ${b}`, ans: a + b };
+  });
+  const [captchaAnswer, setCaptchaAnswer] = useState("");
 
   async function runAiEnhanceDescription() {
     if (!description.trim()) {
@@ -303,8 +311,81 @@ export function ReportView() {
       return;
     }
 
+    // 1. Anti-Fake Mandatory Evidence Check (Photo required for non-emergency)
+    if (urgency !== "emergency" && !photoName) {
+      setFormMessage({
+        type: "error",
+        text: "Photographic evidence is mandatory for standard reports to prevent fake claims. Please upload an evidence photo, or switch Urgency to 'Emergency' if this is an immediate life-safety crisis.",
+      });
+      toast.error("Photo evidence is mandatory for non-emergency reports.");
+      return;
+    }
+
+    // 2. GPS / Exact Location Check
+    if (urgency !== "emergency" && !coordinates && (!locationText || locationText.trim().length < 6)) {
+      setFormMessage({
+        type: "error",
+        text: "GPS coordinates or exact physical landmark address is required. Please click 'Auto-Fetch GPS Location'.",
+      });
+      toast.error("GPS or specific address required.");
+      return;
+    }
+
+    // 3. Anti-Bot CAPTCHA Verification
+    if (parseInt(captchaAnswer, 10) !== captchaProblem.ans) {
+      setFormMessage({
+        type: "error",
+        text: `Human verification failed: ${captchaProblem.q} does not equal "${captchaAnswer}". Please enter the correct sum.`,
+      });
+      toast.error("Incorrect verification answer.");
+      return;
+    }
+
+    // 4. Daily Report Limit & Reputation Check
+    const userReputation = getUserReputation(user.id);
+    const todayKey = `jansetu_daily_${user.id}_${new Date().toDateString()}`;
+    const todayCount = parseInt(localStorage.getItem(todayKey) || "0", 10);
+    const dailyLimit = userReputation.tier === "probation" ? 1 : 5;
+
+    if (todayCount >= dailyLimit) {
+      setFormMessage({
+        type: "error",
+        text: `Daily submission limit reached (${dailyLimit} report/day). This restriction prevents bot and spam floods.`,
+      });
+      toast.error(`Daily limit reached (${dailyLimit}/day).`);
+      return;
+    }
+
+    // 5. Intelligent Duplicate Check against Existing Reports
+    let duplicateLinkedId: string | null = null;
+    let duplicateMatchNotice = "";
+    try {
+      const existingChallenges = JSON.parse(localStorage.getItem("jansetu_user_challenges") || "[]");
+      for (const ex of existingChallenges) {
+        const sim = evaluateReportSimilarity(
+          {
+            category,
+            district: selectedDistrict,
+            block_ward: blockWard,
+            latitude: coordinates?.latitude,
+            longitude: coordinates?.longitude,
+            description,
+          },
+          ex
+        );
+        if (sim.is_strong_match || sim.similarity_score >= 65) {
+          duplicateLinkedId = ex.tracking_id || ex.id;
+          duplicateMatchNotice = `Similar complaint already registered nearby. Auto-linked to Master Docket (${duplicateLinkedId}).`;
+          break;
+        }
+      }
+    } catch (_e) {
+      console.warn("Duplicate check warning:", _e);
+    }
+
     setIsSubmitting(true);
-    const trackingId = `JS-2025-${selectedDistrict.slice(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    // Cryptographically unique, collision-proof tracking ID
+    const trackingId = generateUniqueTrackingId(selectedDistrict);
 
     const newChallenge = {
       id: "report-" + Date.now(),
@@ -321,6 +402,10 @@ export function ReportView() {
       latitude: coordinates?.latitude ?? null,
       longitude: coordinates?.longitude ?? null,
       media_url: photoName || null,
+      evidence_timestamp: new Date().toISOString(),
+      master_issue_id: duplicateLinkedId,
+      is_duplicate_linked: !!duplicateLinkedId,
+      reporter_reputation_score: userReputation.score,
       user_id: user.id,
       reporter_id: user.id,
       created_at: new Date().toISOString(),
@@ -386,6 +471,10 @@ export function ReportView() {
         const localItems = JSON.parse(localStorage.getItem("jansetu_user_challenges") || "[]");
         localItems.unshift(newChallenge);
         localStorage.setItem("jansetu_user_challenges", JSON.stringify(localItems));
+        // Increment daily submission quota
+        localStorage.setItem(todayKey, String(todayCount + 1));
+        // Update user trust/reputation metrics
+        updateUserReputation(user.id, "report_submitted", "Issue report submitted");
       } catch (_e) {
         console.error("LocalStorage save error:", _e);
       }
@@ -787,9 +876,19 @@ export function ReportView() {
           </div>
         </div>
 
-        {/* Upload Photo Section */}
+        {/* Upload Photo Section with Anti-Fake Verification */}
         <div className="space-y-2">
-          <label className="text-sm font-semibold text-foreground">Upload Photo (Optional)</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+              <span>Photo / Visual Evidence</span>
+              {urgency === "emergency" ? (
+                <span className="text-xs font-normal text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Optional for Emergency</span>
+              ) : (
+                <span className="text-xs font-semibold text-destructive bg-destructive/10 px-2 py-0.5 rounded border border-destructive/20">Mandatory</span>
+              )}
+            </label>
+            <span className="text-[11px] text-muted-foreground">Required to prevent fake reports</span>
+          </div>
           <div>
             <input
               ref={photoInputRef}
@@ -801,16 +900,40 @@ export function ReportView() {
             <Button
               type="button"
               variant="outline"
-              className="w-full justify-start gap-2"
+              className={`w-full justify-start gap-2 border-dashed ${!photoName && urgency !== "emergency" ? "border-primary/40 bg-primary/5" : ""}`}
               onClick={() => photoInputRef.current?.click()}
             >
               <Upload className="size-4 text-primary" aria-hidden />
-              {photoName ? photoName : "Choose Photo Image..."}
+              {photoName ? photoName : "Upload Proof Photo (JPG, PNG, WebP)..."}
             </Button>
             {photoName && (
-              <p className="mt-1.5 truncate text-xs text-muted-foreground">{photoName}</p>
+              <p className="mt-1.5 truncate text-xs text-emerald-600 font-medium flex items-center gap-1">
+                ✓ Evidence attached: {photoName}
+              </p>
             )}
           </div>
+        </div>
+
+        {/* Human Verification (Anti-Bot Math CAPTCHA) */}
+        <div className="rounded-lg border border-border/80 bg-muted/30 p-3.5 space-y-2">
+          <div className="flex items-center justify-between text-xs font-medium text-foreground">
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="size-4 text-primary" />
+              <span>Anti-Spam Verification: What is <strong>{captchaProblem.q}</strong>?</span>
+            </span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Human Check</span>
+          </div>
+          <Input
+            type="number"
+            placeholder="Type your answer"
+            value={captchaAnswer}
+            onChange={(e) => setCaptchaAnswer(e.target.value)}
+            className="h-9 bg-background"
+            required
+          />
+          <p className="text-[11px] text-muted-foreground">
+            JanSetu uses multi-factor validation (GPS coordinates, media verification & reputation scoring) to safeguard public resources against fraudulent submissions.
+          </p>
         </div>
 
         {formMessage && (

@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, CircleDot, Eye, LoaderCircle, Landmark, MapPin, ShieldAlert, Lock, GraduationCap, Award, BookOpen, Sparkles, CheckCircle2, ShieldCheck, UserCheck, Plus } from "lucide-react";
+import { ArrowRight, CircleDot, Eye, LoaderCircle, Landmark, MapPin, ShieldAlert, Lock, GraduationCap, Award, BookOpen, Sparkles, CheckCircle2, ShieldCheck, UserCheck, Plus, XCircle, Scale, MessageSquare, AlertTriangle } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import AnalyticsView from "./AnalyticsView";
+import { getModerationQueue, resolveModerationItem, type FlaggedReportItem } from "@/lib/moderationEngine";
 import {
   Dialog,
   DialogContent,
@@ -91,9 +92,50 @@ const DEFAULT_DEMO_VERIFICATIONS = [
   },
 ];
 
+const DEFAULT_DEMO_FLAGS: FlaggedReportItem[] = [
+  {
+    id: "flag-demo-1",
+    reportId: "demo-fake-1",
+    trackingId: "JS-2025-RAN-8902",
+    reportTitle: "Huge sinkhole near main square",
+    reportDescription: "There is a 20 foot crater swallowing cars. Immediate national disaster.",
+    category: "Road Maintenance",
+    district: "Ranchi",
+    locationText: "Albert Ekka Chowk, Ranchi",
+    latitude: 23.3700,
+    longitude: 85.3250,
+    mediaUrl: null,
+    reporterId: "user-suspicious-99",
+    flagReason: "fake_non_existent",
+    flagDetails: "Local shopkeepers confirm no such sinkhole exists. Location is clear.",
+    flaggedBy: "citizen-Doranda",
+    flaggedAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+    moderationStatus: "pending_review",
+  },
+  {
+    id: "flag-demo-2",
+    reportId: "demo-dup-2",
+    trackingId: "JS-2025-JAM-3419",
+    reportTitle: "Waterlogging at Jubilee Park Gate",
+    reportDescription: "Rainwater accumulation near Jubilee Park main entrance.",
+    category: "Drainage & Sewerage",
+    district: "East Singhbhum",
+    locationText: "Jubilee Park, Jamshedpur",
+    latitude: 22.8021,
+    longitude: 86.1950,
+    mediaUrl: "waterlogging_jubilee.jpg",
+    reporterId: "user-citizen-202",
+    flagReason: "duplicate_spam",
+    flagDetails: "Duplicate complaint. Master Docket already opened under JS-2025-JAM-1104.",
+    flaggedBy: "system-deduplication",
+    flaggedAt: new Date(Date.now() - 3600000 * 8).toISOString(),
+    moderationStatus: "pending_review",
+  },
+];
+
 export function KanbanView() {
   const { user, isGovernment, switchRole } = useAuth();
-  const [activeTab, setActiveTab] = useState<"kanban" | "analytics" | "university">("kanban");
+  const [activeTab, setActiveTab] = useState<"kanban" | "analytics" | "university" | "moderation">("kanban");
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -106,6 +148,10 @@ export function KanbanView() {
   const [selectedDept, setSelectedDept] = useState<string>("All");
   const [isCapstoneModalOpen, setIsCapstoneModalOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+
+  // Anti-Fake Moderation Queue State
+  const [moderationItems, setModerationItems] = useState<FlaggedReportItem[]>([]);
+  const [rejectionNotes, setRejectionNotes] = useState<{ [id: string]: string }>({});
 
   useEffect(() => {
     let isCurrent = true;
@@ -293,6 +339,14 @@ export function KanbanView() {
 
       setCapstoneProposals([...remoteCapstones, ...storedCap, ...DEFAULT_DEMO_CAPSTONES]);
       setFieldVerifications([...remoteVerifications, ...storedVer, ...DEFAULT_DEMO_VERIFICATIONS]);
+
+      // Load Moderation Queue Items
+      const storedQueue = getModerationQueue();
+      if (storedQueue.length > 0) {
+        setModerationItems(storedQueue);
+      } else {
+        setModerationItems(DEFAULT_DEMO_FLAGS);
+      }
     }
 
     void loadChallenges();
@@ -301,6 +355,35 @@ export function KanbanView() {
       isCurrent = false;
     };
   }, [user?.id]);
+
+  function handleModerationAction(
+    flagId: string,
+    decision: "approved" | "rejected" | "evidence_requested"
+  ) {
+    const reason = rejectionNotes[flagId] || "";
+    const success = resolveModerationItem(flagId, decision, "Processed by Government Moderator", reason);
+    if (success) {
+      setModerationItems((prev) =>
+        prev.map((item) =>
+          item.id === flagId
+            ? {
+                ...item,
+                moderationStatus: decision,
+                rejectionReason: decision === "rejected" ? reason || "Failed authenticity validation" : undefined,
+                moderatedAt: new Date().toISOString(),
+              }
+            : item
+        )
+      );
+      if (decision === "rejected") {
+        toast.error(`Report rejected as fraudulent. Reporter trust score deducted (-30 pts).`);
+      } else if (decision === "approved") {
+        toast.success(`Report verified and approved! Citizen reputation rewarded (+10 pts).`);
+      } else {
+        toast.info(`Additional field proof requested from reporter.`);
+      }
+    }
+  }
 
   async function moveChallenge(challenge: Challenge) {
     if (!isGovernment) {
@@ -397,6 +480,22 @@ export function KanbanView() {
           >
             <GraduationCap className="size-4 text-primary" />
             University Portal
+          </button>
+          <button
+            onClick={() => setActiveTab("moderation")}
+            className={`rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+              activeTab === "moderation"
+                ? "bg-background text-destructive shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ShieldAlert className="size-4 text-destructive" />
+            Moderation Queue
+            {moderationItems.filter((i) => i.moderationStatus === "pending_review").length > 0 && (
+              <span className="rounded-full bg-destructive text-destructive-foreground px-1.5 py-0.5 text-[10px] font-bold">
+                {moderationItems.filter((i) => i.moderationStatus === "pending_review").length}
+              </span>
+            )}
           </button>
         </div>
       </header>
@@ -740,6 +839,156 @@ export function KanbanView() {
             </div>
           )}
         </>
+      )}
+
+      {activeTab === "moderation" && (
+        <div className="space-y-6">
+          {/* Moderation Header Card */}
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-6 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="size-12 rounded-2xl bg-destructive text-destructive-foreground grid place-items-center shadow-sm shrink-0">
+                  <ShieldAlert className="size-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                    Civic Moderation & Anti-Fake Report Queue
+                    <span className="rounded-full bg-destructive/15 text-destructive px-2.5 py-0.5 text-xs font-semibold">
+                      Human Review Gate
+                    </span>
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+                    Every community flag routes through this moderation gate. Validate GPS coordinates, compare evidence, and deter fake reporting through reputation scoring.
+                  </p>
+                </div>
+              </div>
+
+              {/* Stats badges */}
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="rounded-xl border border-border bg-card px-3.5 py-2 text-center shadow-2xs">
+                  <span className="block text-lg font-black text-destructive">
+                    {moderationItems.filter((i) => i.moderationStatus === "pending_review").length}
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pending Review</span>
+                </div>
+                <div className="rounded-xl border border-border bg-card px-3.5 py-2 text-center shadow-2xs">
+                  <span className="block text-lg font-black text-emerald-600">
+                    {moderationItems.filter((i) => i.moderationStatus === "approved").length}
+                  </span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Approved</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Flagged items list */}
+          <div className="space-y-4">
+            {moderationItems.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-muted-foreground">
+                <CheckCircle2 className="mx-auto size-10 text-emerald-500 mb-2" />
+                <p className="text-sm font-semibold text-foreground">Moderation queue is clean!</p>
+                <p className="text-xs">No pending community flags or dispute reports at this time.</p>
+              </div>
+            ) : (
+              moderationItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-2xl border border-border bg-card p-5 shadow-xs space-y-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/50 pb-3">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="rounded-md bg-destructive/10 text-destructive border border-destructive/20 px-2 py-0.5 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
+                        <AlertTriangle className="size-3.5" />
+                        Flag: {item.flagReason.replaceAll("_", " ")}
+                      </span>
+                      <span className="rounded bg-muted px-2 py-0.5 text-xs font-mono font-medium text-foreground">
+                        Docket: {item.trackingId}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Reported by {item.reporterId}
+                      </span>
+                    </div>
+
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold capitalize ${
+                      item.moderationStatus === "pending_review" ? "bg-amber-100 text-amber-800" :
+                      item.moderationStatus === "approved" ? "bg-emerald-100 text-emerald-800" :
+                      item.moderationStatus === "rejected" ? "bg-destructive/15 text-destructive" :
+                      "bg-blue-100 text-blue-800"
+                    }`}>
+                      {item.moderationStatus.replaceAll("_", " ")}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-base font-bold text-foreground">{item.reportTitle}</h3>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.reportDescription}</p>
+                  </div>
+
+                  {item.flagDetails && (
+                    <div className="rounded-xl border border-amber-300/40 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+                      <strong>Community Flag Detail:</strong> {item.flagDetails}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground pt-1">
+                    <div className="flex items-center gap-1">
+                      <MapPin className="size-3.5 text-primary shrink-0" />
+                      <span>{item.locationText || `${item.district} District`}</span>
+                    </div>
+                    {item.latitude && item.longitude && (
+                      <div className="text-[11px] font-mono">
+                        GPS: {item.latitude.toFixed(4)}°, {item.longitude.toFixed(4)}°
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Moderator Controls */}
+                  {item.moderationStatus === "pending_review" ? (
+                    <div className="pt-3 border-t border-border space-y-2.5">
+                      <input
+                        type="text"
+                        placeholder="Optional rejection reason (shown to user upon rejection)..."
+                        value={rejectionNotes[item.id] || ""}
+                        onChange={(e) => setRejectionNotes({ ...rejectionNotes, [item.id]: e.target.value })}
+                        className="w-full text-xs rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleModerationAction(item.id, "evidence_requested")}
+                          className="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
+                        >
+                          Request Evidence
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleModerationAction(item.id, "rejected")}
+                          className="rounded-lg bg-destructive px-3.5 py-1.5 text-xs font-semibold text-destructive-foreground hover:bg-destructive/90 flex items-center gap-1"
+                        >
+                          <XCircle className="size-3.5" /> Reject as Fake (-30 Trust)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleModerationAction(item.id, "approved")}
+                          className="rounded-lg bg-emerald-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 flex items-center gap-1"
+                        >
+                          <CheckCircle2 className="size-3.5" /> Approve (+10 Trust)
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t border-border/50 text-xs text-muted-foreground flex items-center justify-between">
+                      <span>Moderated on {item.moderatedAt ? new Date(item.moderatedAt).toLocaleDateString() : "Recently"}</span>
+                      {item.rejectionReason && (
+                        <span className="text-destructive font-semibold">Reason: {item.rejectionReason}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       )}
 
       <Dialog

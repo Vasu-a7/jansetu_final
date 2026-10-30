@@ -1,9 +1,22 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  AlertTriangle,
+  Award,
+  Check,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Crosshair,
+  MapPin,
+  ShieldCheck,
+  Star,
+  Upload,
+  UserCheck,
+} from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ShieldCheck, Award, CheckCircle2, UserCheck, Star } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -18,30 +31,86 @@ interface FieldVerificationModalProps {
   onSuccess?: () => void;
 }
 
-export function FieldVerificationModal({
-  isOpen,
-  onClose,
-  challenge,
-  onSuccess,
-}: FieldVerificationModalProps) {
+type VerificationStatus = "verified_active" | "verified_resolved" | "work_in_progress";
+
+const steps = ["Volunteer", "Ground status", "Evidence", "Review"];
+
+export function FieldVerificationModal({ isOpen, onClose, challenge, onSuccess }: FieldVerificationModalProps) {
+  const [step, setStep] = useState(0);
   const [volunteerName, setVolunteerName] = useState("");
   const [collegeName, setCollegeName] = useState("Ranchi University");
-  const [verificationStatus, setVerificationStatus] = useState<"verified_active" | "verified_resolved" | "work_in_progress">("verified_active");
-  const [qualityRating, setQualityRating] = useState<number>(5);
+  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>("verified_active");
+  const [qualityRating, setQualityRating] = useState(5);
   const [auditNotes, setAuditNotes] = useState("");
+  const [evidenceName, setEvidenceName] = useState("");
+  const [coordinates, setCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
+  const [certificateId, setCertificateId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!challenge) return null;
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!volunteerName.trim() || !auditNotes.trim()) {
-      toast.error("Please enter student volunteer name and ground audit notes.");
+  function resetForm() {
+    setStep(0);
+    setVolunteerName("");
+    setCollegeName("Ranchi University");
+    setVerificationStatus("verified_active");
+    setQualityRating(5);
+    setAuditNotes("");
+    setEvidenceName("");
+    setCoordinates(null);
+    setShowCertificate(false);
+    setCertificateId("");
+  }
+
+  function close() {
+    if (!isSubmitting) {
+      resetForm();
+      onClose();
+    }
+  }
+
+  function captureLocation() {
+    if (!navigator.geolocation) {
+      toast.error("Location is not supported by this browser.");
       return;
     }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoordinates({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+        setIsLocating(false);
+        toast.success("Field location captured.");
+      },
+      () => {
+        setIsLocating(false);
+        toast.error("Location permission nahi mili. Aap bina GPS ke continue kar sakte hain.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
 
+  function canContinue() {
+    if (step === 0 && (!volunteerName.trim() || !collegeName.trim())) {
+      toast.error("Student name aur college name enter karein.");
+      return false;
+    }
+    if (step === 2 && !auditNotes.trim()) {
+      toast.error("Ground observation notes add karein.");
+      return false;
+    }
+    return true;
+  }
+
+  async function handleSubmit() {
+    if (!auditNotes.trim()) {
+      toast.error("Ground observation notes add karein.");
+      setStep(2);
+      return;
+    }
     setIsSubmitting(true);
+    const newCertificateId = "CERT-JANSETU-" + Math.floor(100000 + Math.random() * 900000);
     const newVerification = {
       id: "verify-" + Date.now(),
       challenge_id: challenge.id,
@@ -51,201 +120,212 @@ export function FieldVerificationModal({
       status: verificationStatus,
       quality_rating: qualityRating,
       audit_notes: auditNotes.trim(),
+      evidence_name: evidenceName || null,
+      latitude: coordinates?.latitude ?? null,
+      longitude: coordinates?.longitude ?? null,
       credits_earned: 50,
-      certificate_id: "CERT-JANSETU-" + Math.floor(100000 + Math.random() * 900000),
-      verified_at: new Date().toLocaleDateString("en-IN", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }),
+      certificate_id: newCertificateId,
+      verified_at: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
     };
 
-    // Save to Supabase backend table
     try {
-      await (supabase.from("field_verifications" as any) as any).insert({
+      const { error } = await (supabase.from("field_verifications" as any) as any).insert({
         challenge_id: challenge.id,
         challenge_title: challenge.title,
         volunteer_name: volunteerName.trim(),
+        college_name: collegeName.trim(),
+        status: verificationStatus,
+        quality_rating: qualityRating,
         audit_notes: auditNotes.trim(),
+        evidence_name: evidenceName || null,
+        latitude: coordinates?.latitude ?? null,
+        longitude: coordinates?.longitude ?? null,
         credits_earned: 50,
-        certificate_id: newVerification.certificate_id,
+        certificate_id: newCertificateId,
       });
-    } catch (e) {
-      console.error("Supabase verification insert notice:", e);
+      if (error) console.warn("Field verification backend sync notice:", error.message);
+    } catch (error) {
+      console.warn("Field verification backend sync notice:", error);
     }
 
-    // Always store in localStorage fallback
     try {
       const stored = JSON.parse(localStorage.getItem("jansetu_field_verifications") || "[]");
       stored.unshift(newVerification);
       localStorage.setItem("jansetu_field_verifications", JSON.stringify(stored));
 
-      toast.success("🏅 Ground Field Verification submitted! +50 Student Volunteer Credits earned.");
+      // Also mark the challenge as verified by Student Civic Corps in local challenges
+      try {
+        const storedChallenges = JSON.parse(localStorage.getItem("jansetu_user_challenges") || "[]");
+        const updated = storedChallenges.map((item: any) => {
+          if (item.id === challenge.id || item.title === challenge.title) {
+            return {
+              ...item,
+              is_student_verified: true,
+              volunteer_status: verificationStatus,
+              volunteer_rating: qualityRating,
+              volunteer_name: volunteerName.trim(),
+              volunteer_college: collegeName.trim(),
+            };
+          }
+          return item;
+        });
+        localStorage.setItem("jansetu_user_challenges", JSON.stringify(updated));
+      } catch (e) {
+        console.warn("Could not update challenge verification state:", e);
+      }
+      setCertificateId(newCertificateId);
       setShowCertificate(true);
-      if (onSuccess) onSuccess();
-    } catch (err) {
-      toast.error("Failed to save field verification.");
+      toast.success("Ground verification submitted. +50 volunteer credits earned.");
+      onSuccess?.();
+    } catch (error) {
+      toast.error("Verification save nahi ho paayi. Please try again.");
+      console.error("Field verification local save error:", error);
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg rounded-2xl">
-        {!showCertificate ? (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && close()}>
+      <DialogContent className="max-h-[92vh] overflow-y-auto rounded-2xl sm:max-w-xl">
+        {showCertificate ? (
+          <div className="space-y-5 py-3 text-center">
+            <div className="mx-auto grid size-16 place-items-center rounded-full bg-emerald-100 text-emerald-700">
+              <Award className="size-8" />
+            </div>
+            <DialogHeader>
+              <DialogTitle className="text-center text-2xl">Verification submitted!</DialogTitle>
+              <DialogDescription className="text-center">
+                Aapka ground audit department review ke liye bhej diya gaya hai.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-left dark:border-emerald-900 dark:bg-emerald-950/30">
+              <div className="flex items-center justify-between text-sm font-bold text-emerald-800 dark:text-emerald-300">
+                <span>+50 Student Credits</span>
+                <span>Certificate ready</span>
+              </div>
+              <p className="mt-2 font-mono text-xs text-emerald-700 dark:text-emerald-400">{certificateId}</p>
+            </div>
+            <Button className="w-full" onClick={close}>Done</Button>
+          </div>
+        ) : (
           <>
             <DialogHeader>
-              <div className="flex items-center gap-2 text-emerald-600 font-semibold text-xs uppercase tracking-wider mb-1">
+              <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-600">
                 <ShieldCheck className="size-4" /> Student Civic Volunteer Corps
               </div>
-              <DialogTitle className="text-xl font-bold">Ground Audit & Field Verification</DialogTitle>
-              <DialogDescription className="text-xs text-muted-foreground">
-                Verify ground status for: <strong className="text-foreground">{challenge.title}</strong>
+              <DialogTitle className="text-xl">Quick Ground Audit</DialogTitle>
+              <DialogDescription className="line-clamp-2 text-xs">
+                Verify: <strong className="text-foreground">{challenge.title}</strong>
+                {challenge.location_text ? ` · ${challenge.location_text}` : ""}
               </DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-foreground mb-1 block">Student Volunteer Name</label>
-                  <Input
-                    value={volunteerName}
-                    onChange={(e) => setVolunteerName(e.target.value)}
-                    placeholder="e.g. Priya Kumari"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-foreground mb-1 block">College / University</label>
-                  <Input
-                    value={collegeName}
-                    onChange={(e) => setCollegeName(e.target.value)}
-                    placeholder="e.g. Ranchi University"
-                    required
-                  />
-                </div>
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between text-[10px] font-semibold text-muted-foreground">
+                <span>Step {step + 1} of {steps.length}</span>
+                <span>{steps[step]}</span>
               </div>
+              <div className="flex gap-1">
+                {steps.map((label, index) => (
+                  <div key={label} className="flex min-w-0 flex-1 items-center gap-1">
+                    <div className={`grid size-6 shrink-0 place-items-center rounded-full text-[10px] font-bold ${index <= step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                      {index < step ? <Check className="size-3" /> : index + 1}
+                    </div>
+                    <span className="hidden truncate text-[10px] sm:block">{label}</span>
+                    {index < steps.length - 1 && <div className={`h-px flex-1 ${index < step ? "bg-primary" : "bg-border"}`} />}
+                  </div>
+                ))}
+              </div>
+            </div>
 
-              <div>
-                <label className="text-xs font-semibold text-foreground mb-1 block">Observed Ground Status</label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setVerificationStatus("verified_active")}
-                    className={`p-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
-                      verificationStatus === "verified_active"
-                        ? "border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300"
-                        : "border-border text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    ⚠️ Active Issue Confirmed
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setVerificationStatus("work_in_progress")}
-                    className={`p-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
-                      verificationStatus === "work_in_progress"
-                        ? "border-blue-500 bg-blue-500/10 text-blue-700 dark:text-blue-300"
-                        : "border-border text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    🚜 Work In Progress
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setVerificationStatus("verified_resolved")}
-                    className={`p-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
-                      verificationStatus === "verified_resolved"
-                        ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-                        : "border-border text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    ✅ Verified Fixed
-                  </button>
+            <div className="min-h-[255px] pt-2">
+              {step === 0 && (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+                    <UserCheck className="mr-1 inline size-4 text-primary" />
+                    Apni student details enter karein. Ye certificate aur audit trail ke liye use hongi.
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="text-xs font-semibold">Student volunteer name<Input className="mt-1" value={volunteerName} onChange={(event) => setVolunteerName(event.target.value)} placeholder="e.g. Priya Kumari" /></label>
+                    <label className="text-xs font-semibold">College / university<Input className="mt-1" value={collegeName} onChange={(event) => setCollegeName(event.target.value)} placeholder="e.g. Ranchi University" /></label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Tip: Ground par pahunchne ke baad hi audit submit karein.</p>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <label className="text-xs font-semibold text-foreground mb-1 block">
-                  Ground Quality & Satisfaction Score (1 to 5 Stars)
-                </label>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setQualityRating(star)}
-                      className="p-1 transition-transform hover:scale-110"
-                    >
-                      <Star
-                        className={`size-6 ${
-                          star <= qualityRating
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-muted-foreground/30"
-                        }`}
-                      />
-                    </button>
-                  ))}
-                  <span className="text-xs font-bold text-foreground ml-2">{qualityRating} / 5 Rating</span>
+              {step === 1 && (
+                <div className="space-y-4">
+                  <p className="text-xs font-semibold">Aapne site par kya dekha?</p>
+                  <div className="grid gap-2">
+                    {([
+                      ["verified_active", "Active issue confirmed", "Problem abhi bhi ground par present hai", AlertTriangle],
+                      ["work_in_progress", "Work in progress", "Department ka kaam chal raha hai", Crosshair],
+                      ["verified_resolved", "Verified fixed", "Problem completely resolve ho gaya", CheckCircle2],
+                    ] as const).map(([value, title, description, Icon]) => (
+                      <button key={value} type="button" onClick={() => setVerificationStatus(value)} className={`flex items-center gap-3 rounded-xl border p-3 text-left transition ${verificationStatus === value ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:bg-muted/50"}`}>
+                        <Icon className="size-5 shrink-0 text-primary" />
+                        <span className="min-w-0"><span className="block text-xs font-bold">{title}</span><span className="block text-[11px] text-muted-foreground">{description}</span></span>
+                        {verificationStatus === value && <Check className="ml-auto size-4 text-primary" />}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2 rounded-xl border border-border p-3">
+                    <MapPin className="size-5 text-primary" />
+                    <div className="min-w-0 flex-1 text-xs"><b>Field location</b><p className="truncate text-muted-foreground">{coordinates ? `${coordinates.latitude.toFixed(5)}, ${coordinates.longitude.toFixed(5)}` : "Not captured yet"}</p></div>
+                    <Button type="button" size="sm" variant="outline" onClick={captureLocation} disabled={isLocating}>{isLocating ? "Locating..." : coordinates ? "Recapture" : "Capture GPS"}</Button>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <label className="text-xs font-semibold text-foreground mb-1 block">
-                  Field Audit Notes & Evidence Summary
-                </label>
-                <Textarea
-                  value={auditNotes}
-                  onChange={(e) => setAuditNotes(e.target.value)}
-                  placeholder="Describe what you inspected on ground (e.g., Streetlight replaced, pothole filled cleanly, drainage cleared)..."
-                  className="min-h-20 resize-y text-xs"
-                  required
-                />
-              </div>
+              {step === 2 && (
+                <div className="space-y-4">
+                  <label className="text-xs font-semibold">Ground observation notes <span className="font-normal text-muted-foreground">(required)</span>
+                    <Textarea className="mt-1 min-h-24 resize-y" value={auditNotes} onChange={(event) => setAuditNotes(event.target.value)} placeholder="Example: Main road ke north side mein 20m pipe leakage abhi bhi active hai..." />
+                  </label>
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4 text-xs">
+                    <Upload className="size-5 text-primary" />
+                    <span className="min-w-0 flex-1"><b>Evidence photo/video</b><span className="block truncate text-muted-foreground">{evidenceName || "Optional, but recommended"}</span></span>
+                    <input className="hidden" type="file" accept="image/*,video/*" onChange={(event) => setEvidenceName(event.target.files?.[0]?.name || "")} />
+                    <span className="rounded-lg border bg-background px-2 py-1 font-semibold">Choose</span>
+                  </label>
+                  <div>
+                    <p className="mb-1 text-xs font-semibold">Ground quality rating</p>
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => <button key={star} type="button" aria-label={`${star} stars`} onClick={() => setQualityRating(star)}><Star className={`size-7 ${star <= qualityRating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} /></button>)}
+                      <span className="ml-2 text-xs font-bold">{qualityRating}/5</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-              <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-                  Cancel
-                </Button>
-                <Button type="submit" className="gap-1.5 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white" disabled={isSubmitting}>
-                  <Award className="size-4" />
-                  {isSubmitting ? "Submitting Audit..." : "Submit Audit & Get Certificate"}
-                </Button>
-              </div>
-            </form>
+              {step === 3 && (
+                <div className="space-y-3">
+                  <div className="rounded-xl border bg-muted/30 p-4 text-xs">
+                    <p className="mb-2 font-bold">Audit summary</p>
+                    <p><b>Volunteer:</b> {volunteerName} · {collegeName}</p>
+                    <p><b>Status:</b> {verificationStatus === "verified_active" ? "Active issue confirmed" : verificationStatus === "work_in_progress" ? "Work in progress" : "Verified fixed"}</p>
+                    <p><b>Evidence:</b> {evidenceName || "Not attached"} · <b>GPS:</b> {coordinates ? "Captured" : "Not captured"}</p>
+                    <p className="mt-2 border-t pt-2"><b>Notes:</b> {auditNotes}</p>
+                  </div>
+                  <p className="flex gap-2 text-xs text-muted-foreground"><ShieldCheck className="size-4 shrink-0 text-emerald-600" /> Submit karne se pehle details check kar lein. Ye audit department review aur certificate record mein save hoga.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-2 border-t pt-4">
+              <Button type="button" variant="ghost" onClick={() => step === 0 ? close() : setStep((current) => current - 1)} disabled={isSubmitting}>
+                <ChevronLeft className="mr-1 size-4" /> {step === 0 ? "Cancel" : "Back"}
+              </Button>
+              {step < steps.length - 1 ? (
+                <Button type="button" onClick={() => canContinue() && setStep((current) => current + 1)}>Next <ChevronRight className="ml-1 size-4" /></Button>
+              ) : (
+                <Button type="button" onClick={() => void handleSubmit()} disabled={isSubmitting}>{isSubmitting ? "Submitting..." : "Submit audit"} <CheckCircle2 className="ml-1 size-4" /></Button>
+              )}
+            </div>
           </>
-        ) : (
-          <div className="py-4 text-center space-y-4">
-            <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
-              <Award className="size-10 animate-bounce" />
-            </div>
-            
-            <div className="rounded-2xl border-2 border-emerald-500/30 bg-card p-6 shadow-sm text-center relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
-                Official Digital Badge
-              </div>
-              <p className="text-xs uppercase tracking-widest text-emerald-600 font-extrabold mb-1">JanSetu Civic Commons</p>
-              <h3 className="text-lg font-bold text-foreground">Certificate of Civic Volunteer Audit</h3>
-              <p className="mt-2 text-xs text-muted-foreground">
-                This digital badge certifies that <strong className="text-foreground">{volunteerName}</strong> ({collegeName}) has successfully verified ground resolution for:
-              </p>
-              <p className="mt-2 font-semibold text-xs text-primary bg-primary/5 p-2 rounded-lg">
-                "{challenge.title}"
-              </p>
-              <div className="mt-4 flex items-center justify-between text-[11px] text-muted-foreground border-t pt-3">
-                <span>Verified: <strong>50 NSS Credits Earned</strong></span>
-                <span>Audit Date: {new Date().toLocaleDateString()}</span>
-              </div>
-            </div>
-
-            <Button onClick={onClose} className="w-full font-semibold">
-              Done & Close
-            </Button>
-          </div>
         )}
       </DialogContent>
     </Dialog>
   );
 }
-

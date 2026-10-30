@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { CapstoneProposalModal } from "@/components/CapstoneProposalModal";
 import { FieldVerificationModal } from "@/components/FieldVerificationModal";
+import { ReportFlagModal } from "@/components/ReportFlagModal";
 
 type Challenge = Tables<"challenges"> & { tracking_id?: string };
 
@@ -83,10 +84,16 @@ function ChallengeCard({
         </div>
 
         {/* Tracking ID & Meta */}
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
           <span className="rounded-full bg-muted/80 px-2 py-0.5 font-mono text-[10px] font-bold text-muted-foreground truncate max-w-[160px]">
             {displayTrackingId}
           </span>
+          {(challenge as any).is_student_verified && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 border border-emerald-500/20">
+              <ShieldCheck className="size-3 text-emerald-600" />
+              Verified by Student Corps ({(challenge as any).volunteer_rating || 5}★)
+            </span>
+          )}
         </div>
 
         {/* Title & Description */}
@@ -272,6 +279,7 @@ export function FeedView() {
   const [isVolunteered, setIsVolunteered] = useState<Record<string, boolean>>({});
   const [isCapstoneModalOpen, setIsCapstoneModalOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [flagReportTarget, setFlagReportTarget] = useState<Challenge | null>(null);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -573,7 +581,7 @@ export function FeedView() {
               }}
               onFlag={(e) => {
                 e.stopPropagation();
-                toast.success(`Report "${challenge.title.slice(0, 30)}..." flagged for human moderation review.`);
+                setFlagReportTarget(challenge);
               }}
             />
           ))}
@@ -729,6 +737,12 @@ export function FeedView() {
         isOpen={isVerificationModalOpen}
         onClose={() => setIsVerificationModalOpen(false)}
         challenge={selectedChallenge}
+      />
+
+      <ReportFlagModal
+        isOpen={flagReportTarget !== null}
+        onClose={() => setFlagReportTarget(null)}
+        report={flagReportTarget}
       />
     </section>
   );
